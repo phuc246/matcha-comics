@@ -1,0 +1,346 @@
+/* ================================================
+   DESIGN TOKENS — Web Truyện Sang Trọng
+   Palette: Dark Luxury + Matcha Cream + Milky Honey
+   ================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---- CSS Variables ---- */
+:root {
+  /* Backgrounds */
+  --bg-primary:      #0D0F14;
+  --bg-secondary:    #141720;
+  --bg-tertiary:     #1C2030;
+  --bg-card:         #161B27;
+  --bg-glass:        rgba(20, 23, 32, 0.85);
+  --bg-glass-light:  rgba(28, 32, 48, 0.6);
+
+  /* Accents */
+  --accent-primary:  #9CA764;
+  --accent-hover:    #B8C878;
+  --accent-gold:     #F1E8C7;
+  --accent-dark:     #6B7445;
+  --accent-red:      #E05454;
+  --accent-blue:     #5B8DEF;
+
+  /* Text */
+  --text-primary:    #F1E8C7;
+  --text-secondary:  #A8A8B3;
+  --text-muted:      #5C5C6B;
+  --text-accent:     #9CA764;
+
+  /* Borders */
+  --border-subtle:   rgba(156, 167, 100, 0.12);
+  --border-active:   rgba(156, 167, 100, 0.45);
+  --border-card:     rgba(255, 255, 255, 0.06);
+
+  /* Shadows */
+  --shadow-sm:       0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md:       0 4px 24px rgba(0, 0, 0, 0.55);
+  --shadow-lg:       0 8px 48px rgba(0, 0, 0, 0.8);
+  --shadow-glow:     0 0 20px rgba(156, 167, 100, 0.3);
+  --shadow-glow-lg:  0 0 40px rgba(156, 167, 100, 0.5);
+
+  /* Border Radius */
+  --radius-xs:  6px;
+  --radius-sm:  10px;
+  --radius-md:  14px;
+  --radius-lg:  20px;
+  --radius-xl:  28px;
+  --radius-2xl: 40px;
+
+  /* Transitions */
+  --transition-fast:   all 0.15s ease;
+  --transition-base:   all 0.25s ease;
+  --transition-slow:   all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Z-index scale */
+  --z-dropdown: 100;
+  --z-sticky:   200;
+  --z-modal:    500;
+  --z-toast:    900;
+}
+
+/* ---- Reset & Base ---- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-dark);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
+/* ---- Selection ---- */
+::selection {
+  background: rgba(156, 167, 100, 0.35);
+  color: var(--text-primary);
+}
+
+/* ---- Typography ---- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: var(--transition-base);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* ---- Layout Utilities ---- */
+.container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+@media (max-width: 768px) {
+  .container { padding: 0 16px; }
+}
+
+/* ---- Section Header ---- */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.section-title::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 28px;
+  background: linear-gradient(180deg, var(--accent-primary), var(--accent-dark));
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.section-view-all {
+  font-size: 0.875rem;
+  color: var(--accent-primary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--transition-base);
+}
+
+.section-view-all:hover {
+  color: var(--accent-hover);
+  gap: 8px;
+}
+
+/* ---- Grid Layouts ---- */
+.comic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 20px;
+}
+
+@media (min-width: 640px) {
+  .comic-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .comic-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+}
+
+/* ---- Badge styles ---- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-hot {
+  background: linear-gradient(135deg, #FF4D4D, #FF8C00);
+  color: white;
+}
+
+.badge-new {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
+  color: var(--bg-primary);
+}
+
+.badge-completed {
+  background: rgba(91, 141, 239, 0.2);
+  color: var(--accent-blue);
+  border: 1px solid rgba(91, 141, 239, 0.3);
+}
+
+/* ---- Glass card ---- */
+.glass-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+}
+
+/* ---- Gradient text ---- */
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ---- Divider ---- */
+.divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--border-subtle),
+    var(--accent-primary) 50%,
+    var(--border-subtle),
+    transparent
+  );
+  margin: 32px 0;
+}
+
+/* ---- Element Plus Overrides ---- */
+.el-button--primary {
+  background-color: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--bg-primary) !important;
+  font-weight: 600 !important;
+}
+
+.el-button--primary:hover {
+  background-color: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
+}
+
+/* Dark menu overrides */
+.el-menu {
+  background-color: transparent !important;
+  border-right: none !important;
+}
+
+.el-menu-item, .el-sub-menu__title {
+  color: var(--text-secondary) !important;
+}
+
+.el-menu-item:hover, .el-sub-menu__title:hover {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* Input overrides */
+.el-input__wrapper {
+  background-color: var(--bg-tertiary) !important;
+  border: 1px solid var(--border-card) !important;
+  box-shadow: none !important;
+}
+
+.el-input__wrapper:hover,
+.el-input__wrapper.is-focus {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 2px rgba(156, 167, 100, 0.15) !important;
+}
+
+.el-input__inner {
+  color: var(--text-primary) !important;
+  background: transparent !important;
+}
+
+/* Tag overrides */
+.el-tag {
+  background-color: rgba(156, 167, 100, 0.15) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* ---- Page section spacing ---- */
+.page-section {
+  padding: 48px 0;
+}
+
+.page-section + .page-section {
+  padding-top: 0;
+}
+
+/* ---- Rank badge for Top10 ---- */
+.rank-badge {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 900;
+  font-size: 0.8rem;
+  z-index: 10;
+  border: 2px solid var(--bg-primary);
+}
+
+.rank-badge.rank-1 { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; }
+.rank-badge.rank-2 { background: linear-gradient(135deg, #C0C0C0, #A8A8A8); color: #000; }
+.rank-badge.rank-3 { background: linear-gradient(135deg, #CD7F32, #A0522D); color: #fff; }
+.rank-badge.rank-other { background: var(--bg-tertiary); color: var(--text-secondary); border-color: var(--border-card); }
