@@ -17,6 +17,7 @@ func main() {
 	db.AutoMigrate(&models.User{}, &models.Story{}, &models.Chapter{}, &models.Genre{})
 
 	// Create admin user
+	db.Unscoped().Where("username = ?", "superadmin").Delete(&models.User{})
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 	admin := models.User{
 		Username: "superadmin",
@@ -25,9 +26,9 @@ func main() {
 	}
 
 	if err := db.Create(&admin).Error; err != nil {
-		log.Println("Admin user might already exist:", err)
+		log.Println("Error creating admin user:", err)
 	} else {
-		log.Println("Admin user created: superadmin / password")
+		log.Println("Admin user created/reset: superadmin / password")
 	}
 
 	// Create some mock genres

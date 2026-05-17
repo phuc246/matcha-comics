@@ -2,7 +2,7 @@ import { useRuntimeConfig } from '#app'
 
 export const useApi = () => {
   const config = useRuntimeConfig()
-  const baseURL = 'http://localhost:8080/api' // In production, this would come from config.public.apiBase
+  const baseURL = config.public.apiBase || 'http://localhost:8080/api'
 
   const get = async <T>(endpoint: string, options = {}) => {
     return await $fetch<T>(`${baseURL}${endpoint}`, {

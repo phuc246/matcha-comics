@@ -33,7 +33,7 @@
             <NuxtLink
               v-for="(comic, i) in comics.slice(3, 10)"
               :key="comic.id"
-              :to="`/truyen-tranh/${comic.slug}`"
+              :to="comic.type === 'novel' ? `/truyen-chu/${comic.slug}` : `/truyen-tranh/${comic.slug}`"
               class="rank-row animate-slide-left"
               :style="{ animationDelay: `${(i+3)*0.06}s` }"
             >

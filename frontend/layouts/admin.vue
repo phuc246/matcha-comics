@@ -37,6 +37,18 @@
       </nav>
 
       <div class="sidebar-footer">
+        <!-- Storage Usage Widget -->
+        <div v-if="!sidebarCollapsed && storageStats" class="storage-widget" :class="{ 'warning': isNearLimit }">
+          <div class="storage-info">
+            <span class="storage-label">Lưu trữ (R2 Free)</span>
+            <span class="storage-value">{{ formatSize(storageStats.totalSize) }} / 10GB</span>
+          </div>
+          <div class="storage-bar">
+            <div class="storage-progress" :style="{ width: storagePercent + '%' }"></div>
+          </div>
+          <p v-if="isNearLimit" class="storage-warning">⚠️ Sắp chạm hạn mức 10GB!</p>
+        </div>
+
         <NuxtLink to="/" class="nav-item back-site">
           <span class="nav-icon">🏠</span>
           <span v-if="!sidebarCollapsed" class="nav-label">Về trang chủ</span>
@@ -86,13 +98,53 @@ const sidebarCollapsed = ref(false)
 
 const isAuthenticated = computed(() => authStore.isLoggedIn)
 
-onMounted(() => {
+const storageStats = ref<any>(null)
+const { get } = useApi()
+
+const fetchStorageStats = async () => {
+  try {
+    const data = await get<any>('/admin/storage-stats', {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
+    storageStats.value = data
+  } catch (err) {
+    console.error('Error fetching storage stats:', err)
+  }
+}
+
+onMounted(async () => {
+  // Ensure store is initialized from localStorage
+  if (!authStore.initialized) {
+    authStore.init()
+  }
+
   if (route.path !== '/admin/login') {
     if (!authStore.isLoggedIn) {
       router.push('/admin/login')
+    } else {
+      fetchStorageStats()
     }
   }
 })
+
+const storagePercent = computed(() => {
+  if (!storageStats.value) return 0
+  return Math.min(100, (storageStats.value.totalSize / storageStats.value.limitBytes) * 100)
+})
+
+const isNearLimit = computed(() => {
+  if (!storageStats.value) return false
+  // 9GB limit = 9 * 1024 * 1024 * 1024
+  return storageStats.value.totalSize > (9 * 1024 * 1024 * 1024)
+})
+
+const formatSize = (bytes: number) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
 
 const logout = () => {
   authStore.logout()
@@ -194,6 +246,43 @@ const logout = () => {
 .nav-label { white-space: nowrap; }
 
 .sidebar-footer { padding: 20px 12px; border-top: 1px solid rgba(255,255,255,0.05); }
+
+/* Storage Widget */
+.storage-widget {
+  padding: 12px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255,255,255,0.03);
+}
+.storage-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  margin-bottom: 8px;
+}
+.storage-label { color: #5C5C6B; }
+.storage-value { color: #A8A8B3; font-weight: 600; }
+.storage-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.storage-progress {
+  height: 100%;
+  background: #9CA764;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.storage-widget.warning .storage-progress { background: #ef4444; }
+.storage-warning {
+  color: #ef4444;
+  font-size: 0.7rem;
+  margin-top: 8px;
+  font-weight: 600;
+  text-align: center;
+}
 
 .back-site {
   color: #5C5C6B;

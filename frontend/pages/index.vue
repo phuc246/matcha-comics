@@ -105,7 +105,7 @@ onMounted(async () => {
     }
 
     // 2. Fetch Top Comics - Ranking
-    const topData = await get<any[]>('/stories?type=comic&limit=10&sort=views')
+    const topData = await get<any[]>('/stories?limit=10&sort=views')
     if (topData && topData.length > 0) {
       const realSlugs = new Set(topData.map(s => s.slug))
       topComics.value = [

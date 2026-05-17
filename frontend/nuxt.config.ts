@@ -2,6 +2,9 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   devtools: { enabled: true },
+  experimental: {
+    appManifest: false,
+  },
 
   modules: [
     '@element-plus/nuxt',
@@ -36,7 +39,7 @@ export default defineNuxtConfig({
       navigateFallback: '/',
     },
     devOptions: {
-      enabled: true,
+      enabled: false,
       type: 'module',
     },
   },

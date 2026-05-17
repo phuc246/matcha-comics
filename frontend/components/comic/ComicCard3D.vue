@@ -18,10 +18,12 @@
           </div>
           <div class="comic-card__info">
             <h3 class="comic-card__title">{{ comic.title }}</h3>
-            <p class="comic-card__chapter">
-              <span class="chapter-dot" />
-              Ch.{{ comic.latestChapter || 0 }} · {{ timeAgo(comic.updatedAt) }}
-            </p>
+            <div class="comic-card__meta">
+              <p class="comic-card__chapter">
+                <span class="chapter-dot" />
+                Ch.{{ comic.latestChapter || 0 }} · <ClientOnly>{{ timeAgo(comic.updatedAt) }}</ClientOnly>
+              </p>
+            </div>
             <div class="comic-card__stats">
               <span>👁 {{ formatViews(comic.views) }}</span>
               <span v-if="comic.rating">⭐ {{ comic.rating }}</span>
@@ -58,6 +60,7 @@ interface Comic {
   coverUrl?: string
   type: 'comic' | 'novel'
   latestChapter?: number
+  author?: string
   updatedAt?: string
   views?: number
   rating?: number
@@ -199,6 +202,20 @@ const onImgError = (e: Event) => {
 .comic-card__badges { display: flex; gap: 4px; flex-wrap: wrap; }
 
 .comic-card__info { display: flex; flex-direction: column; gap: 5px; }
+
+.comic-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.comic-card__author {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .comic-card__title {
   font-family: 'Montserrat', sans-serif;

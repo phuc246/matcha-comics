@@ -36,7 +36,7 @@
             <div class="novel-meta">
               <div class="meta-item">
                 <span class="meta-label">Tác giả:</span>
-                <span class="meta-value">Đang cập nhật</span>
+                <span class="meta-value">{{ novel.author || 'Đang cập nhật' }}</span>
               </div>
               <div class="meta-item">
                 <span class="meta-label">Trạng thái:</span>
@@ -44,7 +44,7 @@
               </div>
               <div class="meta-item">
                 <span class="meta-label">Cập nhật:</span>
-                <span class="meta-value">{{ novel.updatedAt }}</span>
+                <span class="meta-value">{{ timeAgo(novel.updatedAt) }}</span>
               </div>
             </div>
 
@@ -55,24 +55,32 @@
             </div>
 
             <div class="novel-genres">
-              <NuxtLink v-for="g in novel.genres" :key="g" :to="`/the-loai/${g.toLowerCase()}`" class="genre-tag">
-                {{ g }}
+              <NuxtLink v-for="g in novel.genres" :key="g.id" :to="`/the-loai/${g.slug}`" class="genre-tag">
+                {{ g.name }}
               </NuxtLink>
             </div>
 
             <div class="novel-desc-box">
-              <p class="novel-desc" :class="{ 'expanded': descExpanded }">{{ novel.description }}</p>
+              <p class="novel-desc" :class="{ 'expanded': descExpanded }" v-html="novel.description"></p>
               <button class="btn-expand" @click="descExpanded = !descExpanded">
                 {{ descExpanded ? 'Thu gọn' : 'Xem thêm' }}
               </button>
             </div>
 
             <div class="detail-actions">
-              <NuxtLink :to="`/truyen-chu/${novel.slug}/chapter-1`" class="btn-read-first">
+              <NuxtLink 
+                v-if="novel.chapters?.length"
+                :to="`/truyen-chu/${novel.slug}/chapter-${Math.min(...novel.chapters.map((c: any) => c.number))}`" 
+                class="btn-read-first"
+              >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                 Đọc Từ Đầu
               </NuxtLink>
-              <NuxtLink :to="`/truyen-chu/${novel.slug}/chapter-${novel.latestChapter}`" class="btn-read-latest">
+              <NuxtLink 
+                v-if="novel.chapters?.length"
+                :to="`/truyen-chu/${novel.slug}/chapter-${Math.max(...novel.chapters.map((c: any) => c.number))}`" 
+                class="btn-read-latest"
+              >
                 Chương Mới Nhất
               </NuxtLink>
               <button class="btn-bookmark" aria-label="Lưu truyện">
@@ -93,16 +101,19 @@
             <div class="chapters-header">
               <h3>Chương mới nhất</h3>
             </div>
-            <div class="chapters-list">
+            <div class="chapters-list" v-if="novel.chapters && novel.chapters.length > 0">
               <NuxtLink
-                v-for="i in Math.min(20, novel.latestChapter)"
-                :key="i"
-                :to="`/truyen-chu/${novel.slug}/chapter-${novel.latestChapter - i + 1}`"
+                v-for="chap in [...novel.chapters].reverse()"
+                :key="chap.id"
+                :to="`/truyen-chu/${novel.slug}/chapter-${chap.number}`"
                 class="chapter-item"
               >
-                <span class="chapter-name">Chương {{ novel.latestChapter - i + 1 }}</span>
-                <span class="chapter-time">Mới đây</span>
+                <span class="chapter-name">Chương {{ chap.number }}: {{ chap.title || '' }}</span>
+                <span class="chapter-time">{{ timeAgo(chap.createdAt) }}</span>
               </NuxtLink>
+            </div>
+            <div v-else class="empty-chapters" style="text-align: center; color: var(--text-muted); padding: 20px;">
+              Chưa có chương nào được đăng.
             </div>
           </div>
         </div>
@@ -117,9 +128,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { mockNovels } from '~/data/mock'
 
 const route = useRoute()
 const loading = ref(true)
@@ -133,12 +143,40 @@ const formatViews = (v?: number) => {
   return v.toString()
 }
 
+const { get } = useApi()
+
+const timeAgo = (dateStr?: string) => {
+  if (!dateStr) return 'Vừa cập nhật'
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+  if (days > 7) return date.toLocaleDateString('vi-VN')
+  if (days > 0) return `${days} ngày trước`
+  if (hours > 0) return `${hours} giờ trước`
+  if (minutes > 0) return `${minutes} phút trước`
+  return 'Vừa xong'
+}
+
 onMounted(async () => {
-  // Simulate API fetch
-  await new Promise(r => setTimeout(r, 400))
-  const slug = route.params.slug as string
-  novel.value = mockNovels.find(c => c.slug === slug)
-  loading.value = false
+  loading.value = true
+  try {
+    const slug = route.params.slug as string
+    const data = await get<any>(`/stories/${slug}`)
+    if (data) {
+      novel.value = data
+      // Calculate chapterCount if not provided
+      if (!novel.value.chapterCount && novel.value.chapters) {
+        novel.value.chapterCount = novel.value.chapters.length
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching novel detail:', err)
+  } finally {
+    loading.value = false
+  }
 })
 
 useHead(() => ({
@@ -208,6 +246,7 @@ useHead(() => ({
 .novel-desc-box { margin-top: 4px; }
 .novel-desc { font-size: 0.95rem; line-height: 1.7; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .novel-desc.expanded { -webkit-line-clamp: unset; }
+.novel-desc :deep(*) { color: inherit !important; background-color: transparent !important; }
 .btn-expand { margin-top: 8px; background: none; border: none; color: var(--accent-primary); font-size: 0.85rem; font-weight: 600; cursor: pointer; padding: 0; transition: color 0.2s; }
 .btn-expand:hover { color: var(--accent-hover); text-decoration: underline; }
 

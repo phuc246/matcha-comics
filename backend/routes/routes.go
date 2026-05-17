@@ -53,6 +53,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, rdb *redis.Client) {
 			admin.POST("/upload-images", h.UploadImages)
 			admin.GET("/media", h.ListMedia)
 			admin.DELETE("/media/:id", h.DeleteMedia)
+			admin.GET("/storage-stats", h.GetStorageStats)
 		}
 	}
 }

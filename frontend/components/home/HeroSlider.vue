@@ -1,6 +1,10 @@
 <template>
   <section class="hero-waka" aria-label="Truyện nổi bật">
-    <div class="container hero-container">
+    <!-- Dynamic Blurred Background -->
+    <div class="hero-backdrop" :style="{ backgroundImage: `url(${current.coverUrl})` }"></div>
+    <div class="hero-backdrop-overlay"></div>
+
+    <div class="hero-container">
       
       <!-- Left: Information -->
       <div class="hero-info" :key="`info-${activeIdx}`">
@@ -11,7 +15,7 @@
         
         <h1 class="hero-title animate-fade-up stagger-1">{{ current.title }}</h1>
         
-        <p class="hero-desc animate-fade-up stagger-2">{{ current.description }}</p>
+        <p class="hero-desc animate-fade-up stagger-2" v-html="current.description"></p>
         
         <div class="hero-actions animate-fade-up stagger-3">
           <NuxtLink :to="getReadLink(current)" class="btn-read">
@@ -31,10 +35,6 @@
 
       <!-- Right: Cover Carousel -->
       <div class="hero-carousel">
-        <button class="nav-btn prev-btn" @click="prev" aria-label="Trước">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
-        </button>
-
         <div class="carousel-track">
           <div 
             v-for="(slide, i) in slides" 
@@ -49,10 +49,6 @@
             </div>
           </div>
         </div>
-
-        <button class="nav-btn next-btn" @click="next" aria-label="Tiếp">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
-        </button>
 
         <!-- Dots indicator -->
         <div class="carousel-dots">
@@ -133,25 +129,48 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 <style scoped>
 .hero-waka {
   position: relative;
-  background: var(--bg-primary); /* Solid dark background like Waka */
-  padding: 80px 0 40px;
-  min-height: 500px;
+  background: var(--bg-primary);
+  padding: 120px 0 80px;
+  min-height: 70vh; /* Full screen feel */
   display: flex;
   align-items: center;
   overflow: hidden;
 }
 
+.hero-backdrop {
+  position: absolute;
+  inset: -10%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(40px);
+  opacity: 0.3;
+  transition: background-image 0.5s ease;
+  z-index: 0;
+}
+
+.hero-backdrop-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(10,12,16,1) 0%, rgba(10,12,16,0.85) 40%, rgba(10,12,16,0.4) 100%);
+  z-index: 1;
+}
+
 .hero-container {
   display: flex;
   align-items: center;
-  gap: 40px;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 0 4vw;
+  z-index: 2;
 }
 
 /* Left: Info */
 .hero-info {
-  flex: 1;
-  max-width: 500px;
-  z-index: 2;
+  width: 45%;
+  max-width: 650px;
+  z-index: 10;
 }
 
 .hero-badge-wrap {
@@ -168,22 +187,28 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
 .hero-title {
   font-family: 'Montserrat', sans-serif;
-  font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 800;
+  font-size: clamp(2.2rem, 4.5vw, 3.8rem);
+  font-weight: 900;
   color: var(--text-primary);
-  line-height: 1.2;
-  margin-bottom: 16px;
+  line-height: 1.15;
+  margin-bottom: 20px;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.5);
 }
 
 .hero-desc {
-  font-size: 0.95rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 32px;
+  font-size: 1.05rem;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.7;
+  margin-bottom: 36px;
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.hero-desc :deep(*) {
+  color: inherit !important;
+  background-color: transparent !important;
 }
 
 .hero-actions {
@@ -232,12 +257,12 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
 /* Right: Carousel */
 .hero-carousel {
-  flex: 1.2;
+  width: 50%;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 400px;
+  height: 480px;
 }
 
 .carousel-track {
@@ -252,7 +277,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
 .carousel-item {
   position: absolute;
-  width: 240px; /* Base width */
+  width: 280px;
   aspect-ratio: 2/3;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
@@ -262,9 +287,9 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
 /* 3D Positioning */
 .carousel-item.active {
-  transform: translateX(0) scale(1.1);
+  transform: translateX(0) scale(1.15);
   z-index: 5;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 20px rgba(255,255,255,0.05);
 }
 
 .carousel-item.prev {
@@ -278,12 +303,12 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 }
 
 .carousel-item.prev-2 {
-  transform: translateX(-110%) scale(0.7);
+  transform: translateX(-110%) scale(0.65);
   z-index: 3;
 }
 
 .carousel-item.next-2 {
-  transform: translateX(110%) scale(0.7);
+  transform: translateX(110%) scale(0.65);
   z-index: 3;
 }
 
@@ -314,32 +339,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
   display: none;
 }
 
-/* Navigation buttons */
-.nav-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.15);
-  border: none;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10;
-  transition: var(--transition-base);
-  /* Removed backdrop-filter: blur */
-}
-
-.nav-btn:hover {
-  background: rgba(255,255,255,0.2);
-}
-
-.prev-btn { left: 0; }
-.next-btn { right: 0; }
+/* Removed nav buttons */
 
 /* Dots */
 .carousel-dots {

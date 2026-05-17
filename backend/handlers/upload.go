@@ -68,6 +68,11 @@ func (h *Handler) UploadImages(c *gin.Context) {
 	bucketName := os.Getenv("R2_BUCKET_NAME")
 	publicURL := os.Getenv("R2_PUBLIC_URL")
 
+	type fileInfo struct {
+		url  string
+		size int64
+	}
+	uploadedFiles := make([]fileInfo, 0, len(files))
 	urls := make([]string, 0, len(files))
 
 	for i, fileHeader := range files {
@@ -91,12 +96,14 @@ func (h *Handler) UploadImages(c *gin.Context) {
 		// R2 key path: stories/{story_id}/chapters/{chapter_num}/001_xxx.webp
 		key := fmt.Sprintf("stories/%s/chapters/%s/%s", storyID, chapterNum, filename)
 
+		currentURL := ""
 		if useR2 {
 			// Upload to Cloudflare R2
 			contentType := "image/webp"
-			if ext == ".png" {
+			switch ext {
+			case ".png":
 				contentType = "image/png"
-			} else if ext == ".jpg" || ext == ".jpeg" {
+			case ".jpg", ".jpeg":
 				contentType = "image/jpeg"
 			}
 
@@ -109,20 +116,23 @@ func (h *Handler) UploadImages(c *gin.Context) {
 
 			if uploadErr == nil {
 				// Public R2 URL
-				url := fmt.Sprintf("%s/%s", strings.TrimRight(publicURL, "/"), key)
-				urls = append(urls, url)
-				continue
+				currentURL = fmt.Sprintf("%s/%s", strings.TrimRight(publicURL, "/"), key)
 			}
-			// If R2 upload fails, fallback to local
 		}
 
-		// Fallback: save locally
-		localDir := filepath.Join("uploads", "stories", storyID, "chapters", chapterNum)
-		os.MkdirAll(localDir, 0755)
-		localPath := filepath.Join(localDir, filename)
-		if writeErr := os.WriteFile(localPath, buf, 0644); writeErr == nil {
-			url := fmt.Sprintf("/uploads/stories/%s/chapters/%s/%s", storyID, chapterNum, filename)
-			urls = append(urls, url)
+		if currentURL == "" {
+			// Fallback: save locally
+			localDir := filepath.Join("uploads", "stories", storyID, "chapters", chapterNum)
+			os.MkdirAll(localDir, 0755)
+			localPath := filepath.Join(localDir, filename)
+			if writeErr := os.WriteFile(localPath, buf, 0644); writeErr == nil {
+				currentURL = fmt.Sprintf("/uploads/stories/%s/chapters/%s/%s", storyID, chapterNum, filename)
+			}
+		}
+
+		if currentURL != "" {
+			urls = append(urls, currentURL)
+			uploadedFiles = append(uploadedFiles, fileInfo{url: currentURL, size: fileHeader.Size})
 		}
 	}
 
@@ -133,19 +143,20 @@ func (h *Handler) UploadImages(c *gin.Context) {
 	})
 
 	// Async record to DB to not slow down response
-	go func(dbURLS []string, isR2 bool) {
-		for _, u := range dbURLS {
-			provider := "local"
-			if isR2 {
-				provider = "r2"
-			}
+	go func(items []fileInfo, isR2 bool) {
+		provider := "local"
+		if isR2 {
+			provider = "r2"
+		}
+		for _, item := range items {
 			h.DB.Create(&models.Media{
-				URL:      u,
+				URL:      item.url,
+				Size:     item.size,
 				Provider: provider,
-				FilePath: u, // Simplified for now
+				FilePath: item.url,
 			})
 		}
-	}(urls, useR2)
+	}(uploadedFiles, useR2)
 }
 
 // ListMedia returns all uploaded files
@@ -185,4 +196,21 @@ func (h *Handler) DeleteMedia(c *gin.Context) {
 	// 2. Delete DB record
 	h.DB.Delete(&media)
 	c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully"})
+}
+
+// GetStorageStats returns the total storage used and current counts
+func (h *Handler) GetStorageStats(c *gin.Context) {
+	var stats struct {
+		TotalSize  int64 `json:"totalSize"`
+		TotalFiles int64 `json:"totalFiles"`
+	}
+
+	h.DB.Model(&models.Media{}).Select("SUM(size) as total_size, COUNT(*) as total_files").Scan(&stats)
+
+	c.JSON(http.StatusOK, gin.H{
+		"totalSize":  stats.TotalSize,
+		"totalFiles": stats.TotalFiles,
+		"limitBytes": 10 * 1024 * 1024 * 1024, // 10 GB
+		"freeTier":   "10 GB",
+	})
 }

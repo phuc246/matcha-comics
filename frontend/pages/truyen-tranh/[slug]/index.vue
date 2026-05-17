@@ -36,7 +36,7 @@
             <div class="comic-meta">
               <div class="meta-item">
                 <span class="meta-label">Tác giả:</span>
-                <span class="meta-value">Đang cập nhật</span>
+                <span class="meta-value">{{ comic.author || 'Đang cập nhật' }}</span>
               </div>
               <div class="meta-item">
                 <span class="meta-label">Trạng thái:</span>
@@ -61,7 +61,7 @@
             </div>
 
             <div class="comic-desc-box">
-              <p class="comic-desc" :class="{ 'expanded': descExpanded }">{{ comic.description }}</p>
+              <p class="comic-desc" :class="{ 'expanded': descExpanded }" v-html="comic.description"></p>
               <button class="btn-expand" @click="descExpanded = !descExpanded">
                 {{ descExpanded ? 'Thu gọn' : 'Xem thêm' }}
               </button>
@@ -70,7 +70,7 @@
             <div class="detail-actions">
               <NuxtLink 
                 v-if="comic.chapters?.length"
-                :to="`/truyen-tranh/${comic.slug}/chapter-${Math.min(...comic.chapters.map(c => c.number))}`" 
+                :to="`/truyen-tranh/${comic.slug}/chapter-${Math.min(...comic.chapters.map((c: any) => c.number))}`" 
                 class="btn-read-first"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -78,7 +78,7 @@
               </NuxtLink>
               <NuxtLink 
                 v-if="comic.chapters?.length"
-                :to="`/truyen-tranh/${comic.slug}/chapter-${Math.max(...comic.chapters.map(c => c.number))}`" 
+                :to="`/truyen-tranh/${comic.slug}/chapter-${Math.max(...comic.chapters.map((c: any) => c.number))}`" 
                 class="btn-read-latest"
               >
                 Chương Mới Nhất
@@ -246,6 +246,7 @@ useHead(() => ({
 .comic-desc-box { margin-top: 4px; }
 .comic-desc { font-size: 0.95rem; line-height: 1.7; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .comic-desc.expanded { -webkit-line-clamp: unset; }
+.comic-desc :deep(*) { color: inherit !important; background-color: transparent !important; }
 .btn-expand { margin-top: 8px; background: none; border: none; color: var(--accent-primary); font-size: 0.85rem; font-weight: 600; cursor: pointer; padding: 0; transition: color 0.2s; }
 .btn-expand:hover { color: var(--accent-hover); text-decoration: underline; }
 

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"time"
 )
 
 // CreateChapter adds a new chapter to a story (Admin only)
@@ -48,6 +49,12 @@ func (h *Handler) CreateChapter(c *gin.Context) {
 		}
 		h.DB.Create(&server)
 	}
+
+	// Update Story's LatestChapter and UpdatedAt
+	h.DB.Model(&models.Story{ID: payload.StoryID}).Updates(map[string]interface{}{
+		"latest_chapter": payload.Number,
+		"updated_at":     time.Now(),
+	})
 
 	// Re-load with servers
 	h.DB.Preload("Servers").First(&chapter, chapter.ID)
@@ -115,6 +122,16 @@ func (h *Handler) UpdateChapter(c *gin.Context) {
 		}
 	}
 
+	// Update Story's LatestChapter if this was the latest one
+	var story models.Story
+	h.DB.First(&story, chapter.StoryID)
+	if payload.Number >= story.LatestChapter {
+		h.DB.Model(&story).Updates(map[string]interface{}{
+			"latest_chapter": payload.Number,
+			"updated_at":     time.Now(),
+		})
+	}
+
 	h.DB.Preload("Servers").First(&chapter, chapter.ID)
 	c.JSON(http.StatusOK, chapter)
 }
@@ -124,10 +141,24 @@ func (h *Handler) DeleteChapter(c *gin.Context) {
 	id := c.Param("id")
 	// Delete related servers first
 	h.DB.Where("chapter_id = ?", id).Delete(&models.ChapterServer{})
+	// Recalculate LatestChapter for story
+	var chapter models.Chapter
+	h.DB.First(&chapter, id)
+	storyID := chapter.StoryID
+
 	if err := h.DB.Delete(&models.Chapter{}, id).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Update story's latest chapter after deletion
+	var lastChapter models.Chapter
+	if err := h.DB.Where("story_id = ?", storyID).Order("number desc").First(&lastChapter).Error; err == nil {
+		h.DB.Model(&models.Story{}).Where("id = ?", storyID).Update("latest_chapter", lastChapter.Number)
+	} else {
+		h.DB.Model(&models.Story{}).Where("id = ?", storyID).Update("latest_chapter", 0)
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Chapter deleted successfully"})
 }
 

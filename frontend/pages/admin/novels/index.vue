@@ -28,7 +28,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="n in filteredNovels" :key="n.id">
+          <tr v-for="n in filteredNovels" :key="n.id" class="clickable-row" @click="router.push(`/admin/novels/${n.id}`)">
             <td><img :src="n.coverUrl" alt="" class="table-cover" /></td>
             <td>
               <div class="title-cell">
@@ -49,9 +49,9 @@
             <td>{{ n.chapters?.length || 0 }}</td>
             <td>
               <div class="actions-cell">
-                <NuxtLink :to="`/admin/novels/${n.id}/chapters/create`" class="icon-btn chapter" title="Thêm chương"><span class="icon">📖</span></NuxtLink>
-                <NuxtLink :to="`/admin/novels/edit/${n.id}`" class="icon-btn edit" title="Sửa"><span class="icon">✏️</span></NuxtLink>
-                <button class="icon-btn delete" title="Xóa" @click="deleteStory(n.id)"><span class="icon">🗑️</span></button>
+                <NuxtLink :to="`/admin/novels/${n.id}/chapters/create`" class="icon-btn chapter" title="Thêm chương" @click.stop><span class="icon">📖</span></NuxtLink>
+                <NuxtLink :to="`/admin/novels/edit/${n.id}`" class="icon-btn edit" title="Sửa" @click.stop><span class="icon">✏️</span></NuxtLink>
+                <button class="icon-btn delete" title="Xóa" @click.stop="deleteStory(n.id)"><span class="icon">🗑️</span></button>
               </div>
             </td>
           </tr>
@@ -73,6 +73,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
 definePageMeta({
   layout: 'admin',
@@ -83,6 +84,7 @@ useHead({ title: 'Quản lý Truyện Chữ - Matcha Comic' })
 
 const { get, del } = useApi()
 const authStore = useAuthStore()
+const router = useRouter()
 const novels = ref<any[]>([])
 
 onMounted(async () => {
@@ -134,7 +136,8 @@ const formatNumber = (n: number) => n.toLocaleString()
 .admin-table { width: 100%; border-collapse: collapse; text-align: left; }
 .admin-table th { background: rgba(0,0,0,0.2); padding: 16px; font-size: 0.85rem; color: #5C5C6B; font-weight: 600; }
 .admin-table td { padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #A8A8B3; font-size: 0.9rem; vertical-align: middle; }
-.admin-table tr:hover td { background: rgba(255,255,255,0.01); }
+.admin-table tr { cursor: pointer; }
+.clickable-row:hover td { background: rgba(156,167,100,0.04) !important; }
 .table-cover { width: 48px; height: 64px; object-fit: cover; border-radius: 4px; background: #000; }
 .title-cell { display: flex; flex-direction: column; gap: 4px; }
 .title-text { color: #fff; font-weight: 600; font-size: 0.95rem; }

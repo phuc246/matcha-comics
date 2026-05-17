@@ -6,9 +6,12 @@
         <div class="stat-info">
           <span class="stat-label">{{ s.label }}</span>
           <span class="stat-value">{{ s.value }}</span>
-          <span class="stat-trend" :class="s.trend > 0 ? 'up' : 'down'">
+          <span v-if="s.trend !== undefined" class="stat-trend" :class="s.trend > 0 ? 'up' : 'down'">
             {{ s.trend > 0 ? '↑' : '↓' }} {{ Math.abs(s.trend) }}% <span class="trend-text">vs tuần trước</span>
           </span>
+          <div v-if="s.isStorage" class="storage-mini-bar">
+            <div class="progress" :style="{ width: s.percent + '%', backgroundColor: s.color }"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -114,12 +117,47 @@ definePageMeta({
 
 useHead({ title: 'Admin Dashboard - Matcha Comic' })
 
-const stats = ref([
-  { label: 'Tổng lượt xem', value: '1.2M', trend: 12, icon: '👁', color: '#9CA764' },
-  { label: 'Tổng số truyện', value: '842', trend: 5, icon: '📚', color: '#F1E8C7' },
-  { label: 'Người dùng mới', value: '2.4K', trend: -2, icon: '👥', color: '#6B7445' },
-  { label: 'Doanh thu', value: '45M', trend: 8, icon: '💰', color: '#E2D5A2' },
+const stats = ref<any[]>([
+  { label: 'Tổng lượt xem', value: '0', trend: 0, icon: '👁', color: '#9CA764' },
+  { label: 'Tổng số truyện', value: '0', trend: 0, icon: '📚', color: '#F1E8C7' },
+  { label: 'Lưu trữ (R2 Free)', value: '0/10GB', isStorage: true, percent: 0, icon: '☁️', color: '#60a5fa' },
+  { label: 'Doanh thu', value: '0đ', trend: 0, icon: '💰', color: '#E2D5A2' },
 ])
+
+const { get } = useApi()
+const authStore = useAuthStore()
+
+const formatSize = (bytes: number) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+onMounted(async () => {
+  try {
+    const s = await get<any>('/admin/storage-stats', {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
+    if (s) {
+      const storageIdx = stats.value.findIndex(st => st.isStorage)
+      if (storageIdx !== -1) {
+        stats.value[storageIdx].value = `${formatSize(s.totalSize)} / 10GB`
+        stats.value[storageIdx].percent = Math.min(100, (s.totalSize / s.limitBytes) * 100)
+        if (stats.value[storageIdx].percent > 90) stats.value[storageIdx].color = '#ef4444'
+      }
+    }
+    
+    // Fetch other real stats if needed...
+    const storyData = await get<any[]>('/stories')
+    if (storyData) {
+      stats.value[1].value = storyData.length.toString()
+    }
+  } catch (err) {
+    console.error(err)
+  }
+})
 
 const lineData = {
   labels: ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'],
@@ -191,6 +229,8 @@ const activities = ref([
 .stat-trend.up { color: #4ade80; }
 .stat-trend.down { color: #ef4444; }
 .trend-text { color: #5C5C6B; font-weight: 400; }
+.storage-mini-bar { width: 100%; height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.storage-mini-bar .progress { height: 100%; transition: width 0.5s; }
 
 /* Charts */
 .dashboard-charts { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }

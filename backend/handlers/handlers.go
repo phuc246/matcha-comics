@@ -107,6 +107,20 @@ func (h *Handler) GetStoryDetail(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Story not found"})
 		return
 	}
+
+	// Self-healing: if latest_chapter is 0 but chapters exist, sync it
+	if story.LatestChapter == 0 && len(story.Chapters) > 0 {
+		var maxNum float64
+		for _, ch := range story.Chapters {
+			if ch.Number > maxNum {
+				maxNum = ch.Number
+			}
+		}
+		if maxNum > 0 {
+			story.LatestChapter = maxNum
+			h.DB.Model(&story).Update("latest_chapter", maxNum)
+		}
+	}
 	
 	// Increment total views in DB
 	h.DB.Model(&story).Update("views", gorm.Expr("views + 1"))

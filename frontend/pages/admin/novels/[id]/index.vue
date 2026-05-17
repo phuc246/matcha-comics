@@ -1,8 +1,8 @@
 <template>
   <div class="admin-story-detail" v-if="story">
     <div class="page-header">
-      <button class="back-link" @click="router.push('/admin/comics')">← Quay lại danh sách</button>
-      <h2>Quản lý Truyện: {{ story.title }}</h2>
+      <button class="back-link" @click="router.push('/admin/novels')">← Quay lại danh sách</button>
+      <h2>Quản lý Truyện Chữ: {{ story.title }}</h2>
     </div>
 
     <div class="story-info-card">
@@ -22,7 +22,7 @@
         </div>
       </div>
       <div class="quick-actions">
-        <NuxtLink :to="`/admin/comics/edit/${story.id}`" class="btn-secondary">✏️ Chỉnh sửa thông tin</NuxtLink>
+        <NuxtLink :to="`/admin/novels/edit/${story.id}`" class="btn-secondary">✏️ Chỉnh sửa thông tin</NuxtLink>
       </div>
     </div>
 
@@ -30,7 +30,7 @@
     <div class="chapters-section">
       <div class="section-header">
         <h3>📚 Danh sách Chương ({{ chapters.length }})</h3>
-        <NuxtLink :to="`/admin/comics/${story.id}/chapters/create`" class="btn-primary">
+        <NuxtLink :to="`/admin/novels/${story.id}/chapters/create`" class="btn-primary">
           <span>+</span> Thêm Chương Mới
         </NuxtLink>
       </div>
@@ -42,7 +42,7 @@
               <th width="120">Số Chương</th>
               <th>Tên Chương</th>
               <th>Server</th>
-              <th>Độ dài</th>
+              <th>Dung lượng</th>
               <th>Ngày đăng</th>
               <th width="120">Thao tác</th>
             </tr>
@@ -67,8 +67,8 @@
               <td>{{ new Date(chap.createdAt).toLocaleDateString('vi-VN') }}</td>
               <td>
                 <div class="actions-cell">
-                  <button class="icon-btn view" title="Xem ảnh" @click="previewChapter(chap)">👁️</button>
-                  <NuxtLink :to="`/admin/comics/${story.id}/chapters/edit/${chap.id}`" class="icon-btn edit" title="Sửa chương">✏️</NuxtLink>
+                  <button class="icon-btn view" title="Xem nội dung" @click="previewChapter(chap)">👁️</button>
+                  <NuxtLink :to="`/admin/novels/${story.id}/chapters/edit/${chap.id}`" class="icon-btn edit" title="Sửa chương">✏️</NuxtLink>
                   <button class="icon-btn delete" title="Xóa chương" @click="deleteChapter(chap.id)">🗑️</button>
                 </div>
               </td>
@@ -87,8 +87,8 @@
             <button class="close-btn" @click="showPreview = false">✕</button>
           </div>
           <div class="preview-content">
-            <img v-for="(url, i) in previewImages" :key="i" :src="url" class="preview-img" loading="lazy" />
-            <div v-if="previewImages.length === 0" class="empty-preview">Chương này chưa có ảnh</div>
+            <div class="novel-content-preview ql-editor" v-html="previewText"></div>
+            <div v-if="!previewText" class="empty-preview">Chương này chưa có nội dung</div>
           </div>
         </div>
       </div>
@@ -115,33 +115,22 @@ const authStore = useAuthStore()
 const story = ref<any>(null)
 const chapters = ref<any[]>([])
 const showPreview = ref(false)
-const previewImages = ref<string[]>([])
+const previewText = ref<string>('')
 const currentPreviewChap = ref<any>(null)
-const mediaMap = ref(new Map<string, number>())
 
 const fetchData = async () => {
   try {
     const storyId = route.params.id
-    const all = await get<any[]>('/stories?type=comic')
+    const all = await get<any[]>('/stories?type=novel')
     story.value = all?.find(s => s.id === Number(storyId)) || null
     if (story.value) {
       useHead({ title: `Quản lý: ${story.value.title} - Admin` })
     }
 
-    const [chaps, mediaRes] = await Promise.all([
-      get<any[]>(`/admin/stories/${storyId}/chapters`, {
-        headers: { Authorization: `Bearer ${authStore.token}` }
-      }),
-      get<any[]>('/admin/media', {
-        headers: { Authorization: `Bearer ${authStore.token}` }
-      })
-    ])
-    
+    const chaps = await get<any[]>(`/admin/stories/${storyId}/chapters`, {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
     chapters.value = chaps || []
-    
-    if (mediaRes) {
-      mediaRes.forEach((m: any) => mediaMap.value.set(m.url, m.size))
-    }
   } catch (err) {
     console.error(err)
   }
@@ -150,41 +139,18 @@ const fetchData = async () => {
 onMounted(fetchData)
 
 const getChapterSize = (chap: any) => {
-  if (!chap.servers || chap.servers.length === 0) return '0 ảnh'
-  let count = 0
-  let totalBytes = 0
-  let hasUnknownSize = false
-
-  chap.servers.forEach((s: any) => {
-    try {
-      const urls = JSON.parse(s.content)
-      if (Array.isArray(urls)) {
-        count += urls.length
-        urls.forEach(url => {
-          if (mediaMap.value.has(url)) {
-            totalBytes += mediaMap.value.get(url) || 0
-          } else {
-            hasUnknownSize = true
-          }
-        })
-      }
-    } catch { }
-  })
-
-  if (totalBytes > 0) {
-    const mb = totalBytes / (1024 * 1024)
-    if (hasUnknownSize) {
-      return `${mb.toFixed(2)} MB (+)`
-    }
-    return `${mb.toFixed(2)} MB`
+  if (!chap.servers || chap.servers.length === 0) return '0 KB'
+  const textServer = chap.servers.find((s: any) => s.type === 'text' || s.name === 'Nội dung chữ')
+  if (textServer && textServer.content) {
+    const kb = textServer.content.length / 1024
+    return kb < 1024 ? `${kb.toFixed(1)} KB` : `${(kb / 1024).toFixed(2)} MB`
   }
-
-  return `${count} ảnh`
+  return '0 KB'
 }
 
 const previewChapter = (chap: any) => {
   currentPreviewChap.value = chap
-  previewImages.value = []
+  previewText.value = ''
   if (!chap.servers?.length) {
     showPreview.value = true
     return
@@ -192,10 +158,10 @@ const previewChapter = (chap: any) => {
   
   const firstServer = chap.servers[0]
   try {
-    previewImages.value = JSON.parse(firstServer.content)
+    previewText.value = firstServer.content || ''
     showPreview.value = true
   } catch {
-    alert('Không thể đọc dữ liệu ảnh!')
+    alert('Không thể đọc dữ liệu!')
   }
 }
 
@@ -271,9 +237,9 @@ const deleteChapter = async (id: number) => {
 .preview-header h3 { margin: 0; font-size: 1.1rem; color: #F1E8C7; }
 .close-btn { background: none; border: none; color: #5C5C6B; font-size: 1.4rem; cursor: pointer; }
 .close-btn:hover { color: #fff; }
-.preview-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; align-items: center; background: #0b0d12; }
-.preview-img { max-width: 100%; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-.empty-preview { padding: 40px; color: #5C5C6B; }
+.preview-content { flex: 1; overflow-y: auto; padding: 20px; background: #fff; color: #000; border-radius: 0 0 16px 16px; }
+.novel-content-preview { font-family: 'Inter', sans-serif; line-height: 1.8; font-size: 1.1rem; }
+.empty-preview { padding: 40px; color: #5C5C6B; text-align: center; }
 
 .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px; color: #A8A8B3; gap: 16px; }
 .spinner { width: 40px; height: 40px; border: 3px solid rgba(156,167,100,0.2); border-top-color: #9CA764; border-radius: 50%; animation: spin 0.8s linear infinite; }

@@ -31,6 +31,7 @@ type Story struct {
 	IsHot       bool           `gorm:"default:false" json:"isHot"`
 	Genres      []Genre        `gorm:"many2many:story_genres;" json:"genres"`
 	Chapters    []Chapter      `json:"chapters"`
+	LatestChapter float64      `gorm:"default:0" json:"latestChapter"`
 	CreatedAt   time.Time      `json:"createdAt"`
 	UpdatedAt   time.Time      `json:"updatedAt"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
