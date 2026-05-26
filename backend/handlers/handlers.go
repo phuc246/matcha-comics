@@ -118,12 +118,12 @@ func (h *Handler) GetStoryDetail(c *gin.Context) {
 		}
 		if maxNum > 0 {
 			story.LatestChapter = maxNum
-			h.DB.Model(&story).Update("latest_chapter", maxNum)
+			h.DB.Model(&story).UpdateColumn("latest_chapter", maxNum)
 		}
 	}
 	
 	// Increment total views in DB
-	h.DB.Model(&story).Update("views", gorm.Expr("views + 1"))
+	h.DB.Model(&story).UpdateColumn("views", gorm.Expr("views + 1"))
 	
 	// Track daily trending in Redis
 	ctx := c.Request.Context()

@@ -57,7 +57,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2a3 3 0 0 0-3 3v1H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3V5a3 3 0 0 0-3-3z"/>
             </svg>
-            Admin
+            <span>Admin</span>
           </NuxtLink>
 
           <!-- Mobile menu toggle -->
@@ -130,6 +130,8 @@ import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 
+const { get } = useApi()
+
 const isScrolled = ref(false)
 const searchOpen = ref(false)
 const searchQuery = ref('')
@@ -137,58 +139,147 @@ const mobileMenuOpen = ref(false)
 const searchInput = ref<HTMLInputElement>()
 const isMobile = ref(false)
 
-const menus = [
-  {
-    label: 'Truyện Tranh',
-    path: '/truyen-tranh',
-    children: [
-      {
-        title: 'Khám phá',
-        links: [
-          { label: 'Tất cả truyện', path: '/truyen-tranh', icon: '📚' },
-          { label: 'Mới cập nhật', path: '/truyen-tranh?sort=latest', icon: '🆕' },
-          { label: 'Top thịnh hành', path: '/truyen-tranh?sort=views', icon: '🔥' },
-          { label: 'Đã hoàn thành', path: '/truyen-tranh?status=completed', icon: '✨' },
-        ],
-      },
-      {
-        title: 'Thể loại nổi bật',
-        links: [
-          { label: 'Hành động', path: '/the-loai/action', icon: '⚔️' },
-          { label: 'Lãng mạn', path: '/the-loai/romance', icon: '💕' },
-          { label: 'Kỳ ảo', path: '/the-loai/fantasy', icon: '🧙' },
-          { label: 'Kinh dị', path: '/the-loai/horror', icon: '👻' },
-          { label: 'Tất cả thể loại', path: '/the-loai', icon: '📋' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Truyện Chữ',
-    path: '/truyen-chu',
-    children: [
-      {
-        title: 'Khám phá',
-        links: [
-          { label: 'Tất cả tiểu thuyết', path: '/truyen-chu', icon: '📖' },
-          { label: 'Mới cập nhật', path: '/truyen-chu?sort=latest', icon: '🆕' },
-          { label: 'Top thịnh hành', path: '/truyen-chu?sort=views', icon: '🔥' },
-          { label: 'Đã hoàn thành', path: '/truyen-chu?status=completed', icon: '✨' },
-        ],
-      },
-      {
-        title: 'Thể loại nổi bật',
-        links: [
-          { label: 'Tiên hiệp', path: '/the-loai/tien-hiep', icon: '⛅' },
-          { label: 'Kiếm hiệp', path: '/the-loai/kiem-hiep', icon: '🗡️' },
-          { label: 'Ngôn tình', path: '/the-loai/ngon-tinh', icon: '💞' },
-          { label: 'Tất cả thể loại', path: '/the-loai', icon: '📋' },
-        ],
-      },
-    ],
-  },
-  { label: 'Thể Loại', path: '/the-loai' },
-]
+const genresList = ref<any[]>([])
+const categoriesTree = ref<any[]>([])
+
+const emojiMap: Record<string, string> = {
+  'action': '⚔️',
+  'hanh-dong': '⚔️',
+  'romance': '💕',
+  'lang-man': '💕',
+  'ngon-tinh': '💞',
+  'fantasy': '🧙',
+  'ky-ao': '🧙',
+  'horror': '👻',
+  'kinh-di': '👻',
+  'tien-hiep': '⛅',
+  'kiem-hiep': '🗡️',
+  'comedy': '😂',
+  'hai-huoc': '😂',
+  'drama': '🎭',
+  'kich-tinh': '🎭',
+  'adventure': '🧭',
+  'phieu-luu': '🧭',
+}
+
+const getGenreIcon = (slug: string) => {
+  return emojiMap[slug.toLowerCase()] || '🏷️'
+}
+
+const fetchGenres = async () => {
+  try {
+    const data = await get<any[]>('/genres')
+    if (data) {
+      genresList.value = data
+    }
+  } catch (error) {
+    console.error('Error fetching genres in AppHeader:', error)
+  }
+}
+
+const fetchCategoriesTree = async () => {
+  try {
+    const data = await get<any[]>('/categories?tree=true')
+    if (data) {
+      categoriesTree.value = data
+    }
+  } catch (error) {
+    console.error('Error fetching categories tree in AppHeader:', error)
+  }
+}
+
+const menus = computed(() => {
+  // 1. Map genres dynamically
+  const dynamicGenres = genresList.value.map(g => ({
+    label: g.name,
+    path: `/the-loai/${g.slug}`,
+    icon: getGenreIcon(g.slug),
+  }))
+
+  const comicGenres = dynamicGenres.length > 0 
+    ? [...dynamicGenres, { label: 'Tất cả thể loại', path: '/the-loai', icon: '📋' }]
+    : [
+        { label: 'Hành động', path: '/the-loai/action', icon: '⚔️' },
+        { label: 'Lãng mạn', path: '/the-loai/romance', icon: '💕' },
+        { label: 'Kỳ ảo', path: '/the-loai/fantasy', icon: '🧙' },
+        { label: 'Kinh dị', path: '/the-loai/horror', icon: '👻' },
+        { label: 'Tất cả thể loại', path: '/the-loai', icon: '📋' },
+      ]
+
+  const novelGenres = dynamicGenres.length > 0
+    ? [...dynamicGenres, { label: 'Tất cả thể loại', path: '/the-loai', icon: '📋' }]
+    : [
+        { label: 'Tiên hiệp', path: '/the-loai/tien-hiep', icon: '⛅' },
+        { label: 'Kiếm hiệp', path: '/the-loai/kiem-hiep', icon: '🗡️' },
+        { label: 'Ngôn tình', path: '/the-loai/ngon-tinh', icon: '💞' },
+        { label: 'Tất cả thể loại', path: '/the-loai', icon: '📋' },
+      ]
+
+  // 2. Map dynamic categories from DB
+  const truyenTranhDb = categoriesTree.value.find(c => c.slug === 'truyen-tranh')
+  const truyenChuDb = categoriesTree.value.find(c => c.slug === 'truyen-chu')
+
+  const comicExploreLinks = truyenTranhDb && truyenTranhDb.children && truyenTranhDb.children.length > 0
+    ? truyenTranhDb.children.map((child: any) => ({
+        label: child.name,
+        path: child.path,
+        icon: child.icon || '📚',
+      }))
+    : [
+        { label: 'Tất cả truyện', path: '/truyen-tranh', icon: '📚' },
+        { label: 'Mới cập nhật', path: '/truyen-tranh?sort=latest', icon: '🆕' },
+        { label: 'Top thịnh hành', path: '/truyen-tranh?sort=views', icon: '🔥' },
+        { label: 'Đã hoàn thành', path: '/truyen-tranh?status=completed', icon: '✨' },
+      ]
+
+  const novelExploreLinks = truyenChuDb && truyenChuDb.children && truyenChuDb.children.length > 0
+    ? truyenChuDb.children.map((child: any) => ({
+        label: child.name,
+        path: child.path,
+        icon: child.icon || '📖',
+      }))
+    : [
+        { label: 'Tất cả tiểu thuyết', path: '/truyen-chu', icon: '📖' },
+        { label: 'Mới cập nhật', path: '/truyen-chu?sort=latest', icon: '🆕' },
+        { label: 'Top thịnh hành', path: '/truyen-chu?sort=views', icon: '🔥' },
+        { label: 'Đã hoàn thành', path: '/truyen-chu?status=completed', icon: '✨' },
+      ]
+
+  return [
+    {
+      label: truyenTranhDb?.name || 'Truyện Tranh',
+      path: truyenTranhDb?.path || '/truyen-tranh',
+      children: [
+        {
+          title: 'Khám phá',
+          links: comicExploreLinks,
+        },
+        {
+          title: 'Thể loại nổi bật',
+          links: comicGenres.slice(0, 5),
+        },
+      ],
+    },
+    {
+      label: truyenChuDb?.name || 'Truyện Chữ',
+      path: truyenChuDb?.path || '/truyen-chu',
+      children: [
+        {
+          title: 'Khám phá',
+          links: novelExploreLinks,
+        },
+        {
+          title: 'Thể loại nổi bật',
+          links: novelGenres.slice(0, 5),
+        },
+      ],
+    },
+    { 
+      label: categoriesTree.value.find(c => c.slug === 'the-loai')?.name || 'Thể Loại', 
+      path: categoriesTree.value.find(c => c.slug === 'the-loai')?.path || '/the-loai' 
+    },
+  ]
+})
 
 const isActive = (path: string) => route.path.startsWith(path)
 
@@ -223,6 +314,8 @@ const handleResize = () => {
 }
 
 onMounted(() => {
+  fetchGenres()
+  fetchCategoriesTree()
   handleResize()
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('resize', handleResize)
@@ -674,5 +767,35 @@ onUnmounted(() => {
   .top-bar { display: none; }
   .app-header { height: 64px; }
   .header-inner { gap: 20px; }
+}
+
+@media (max-width: 500px) {
+  .admin-btn span {
+    display: none;
+  }
+  .admin-btn {
+    padding: 10px;
+    border-radius: 50%;
+  }
+  .logo-text {
+    font-size: 1.1rem;
+  }
+  .logo-icon-wrap {
+    width: 32px;
+    height: 32px;
+  }
+  .logo-icon {
+    font-size: 1rem;
+  }
+  .header-actions {
+    gap: 8px;
+  }
+  .action-btn {
+    width: 36px;
+    height: 36px;
+  }
+  .app-header {
+    height: 56px;
+  }
 }
 </style>

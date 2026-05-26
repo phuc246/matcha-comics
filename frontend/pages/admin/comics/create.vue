@@ -27,32 +27,10 @@
               <input type="text" v-model="form.publisher" placeholder="Nhà xuất bản..." />
             </div>
 
-            <div class="form-group" ref="selectContainer">
-              <label>Thể loại <span class="required">*</span></label>
-              
-              <div class="custom-select" :class="{ 'is-open': isGenresDropdownOpen }">
-                <div class="select-header" @click="isGenresDropdownOpen = !isGenresDropdownOpen">
-                  <div class="selected-genres">
-                    <span v-if="form.genres.length === 0">Chọn thể loại...</span>
-                    <span v-else v-for="id in form.genres" :key="id" class="genre-tag">
-                      {{ availableGenres.find(g => g.id === id)?.name }}
-                    </span>
-                  </div>
-                  <span class="chevron">▼</span>
-                </div>
-                
-                <div class="select-dropdown" v-show="isGenresDropdownOpen">
-                  <div class="genres-checkbox-list">
-                    <label v-for="genre in availableGenres" :key="genre.id" class="checkbox-item">
-                      <input type="checkbox" :value="genre.id" v-model="form.genres" @change="checkGenresLimit" />
-                      <span>{{ genre.name }}</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <small class="help-text">Chọn tối đa 7 thể loại</small>
-            </div>
+            <GenreSelect 
+              v-model="form.genres" 
+              :required="true"
+            />
             <div class="form-group">
               <label>Trạng thái</label>
               <div class="radio-group">
@@ -142,11 +120,9 @@ definePageMeta({
 })
 
 const router = useRouter()
-const { get, post } = useApi()
+const { post } = useApi()
 const authStore = useAuthStore()
 const isSubmitting = ref(false)
-const isGenresDropdownOpen = ref(false)
-const selectContainer = ref<HTMLElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 const descTextarea = ref<HTMLTextAreaElement | null>(null)
 const form = reactive({
@@ -158,13 +134,6 @@ const form = reactive({
   description: '',
   coverUrl: ''
 })
-
-const checkGenresLimit = (e: Event) => {
-  if (form.genres.length > 7) {
-    alert('Chỉ được chọn tối đa 7 thể loại!')
-    form.genres.pop() // Revert the last selection
-  }
-}
 
 const quillToolbar = [
   [{ 'font': [false, 'serif', 'monospace', 'arial', 'roboto', 'montserrat', 'inter', 'times-new-roman'] }, { 'size': ['small', false, 'large', 'huge'] }],
@@ -189,21 +158,8 @@ const descriptionLength = computed(() => {
   return temp.textContent?.length || 0
 })
 
-const availableGenres = ref<any[]>([])
-
 onMounted(async () => {
-  document.addEventListener('click', (e) => {
-    if (selectContainer.value && !selectContainer.value.contains(e.target as Node)) {
-      isGenresDropdownOpen.value = false
-    }
-  })
-  
-  try {
-    const data = await get<any[]>('/genres')
-    availableGenres.value = data || []
-  } catch (err) {
-    console.error('Error fetching genres:', err)
-  }
+  // GenreSelect dynamically handles its own API data fetching
 })
 
 const triggerUpload = () => fileInput.value?.click()
@@ -280,19 +236,7 @@ const handleSubmit = async () => {
 .radio-group { display: flex; gap: 16px; align-items: center; height: 44px; }
 .radio-item { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 0.9rem; cursor: pointer; }
 
-/* Custom Select */
-.custom-select { position: relative; width: 100%; }
-.select-header { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; color: #fff; font-size: 0.9rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: border-color 0.2s; min-height: 46px; }
-.select-header:hover { border-color: #9CA764; }
-.custom-select.is-open .select-header { border-color: #9CA764; }
-.selected-genres { display: flex; flex-wrap: wrap; gap: 6px; }
-.genre-tag { background: rgba(156,167,100,0.2); color: #9CA764; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; border: 1px solid rgba(156,167,100,0.3); }
-.select-dropdown { position: absolute; top: calc(100% + 4px); left: 0; width: 100%; background: #1F2330; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; z-index: 10; box-shadow: 0 4px 20px rgba(0,0,0,0.5); max-height: 250px; overflow-y: auto; }
-.genres-checkbox-list { display: flex; flex-direction: column; gap: 10px; }
-.checkbox-item { display: flex; align-items: center; gap: 8px; color: #fff; cursor: pointer; font-size: 0.9rem; padding: 2px 0; }
-.checkbox-item:hover { color: #9CA764; }
-.checkbox-item input { accent-color: #9CA764; width: 16px; height: 16px; cursor: pointer; }
-.chevron { font-size: 0.7rem; color: #A8A8B3; }
+
 
 /* Sidebar */
 /* Quill Editor Styling */

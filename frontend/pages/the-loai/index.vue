@@ -26,12 +26,55 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { mockGenres } from '~/data/mock'
+import { ref, onMounted } from 'vue'
 
 useHead({ title: 'Thể Loại — Matcha Comic' })
 
-const genres = ref(mockGenres)
+const genres = ref<any[]>([])
+const loading = ref(false)
+const { get } = useApi()
+
+const emojiMap: Record<string, string> = {
+  'action': '⚔️',
+  'hanh-dong': '⚔️',
+  'romance': '💕',
+  'lang-man': '💕',
+  'ngon-tinh': '💞',
+  'fantasy': '🧙',
+  'ky-ao': '🧙',
+  'horror': '👻',
+  'kinh-di': '👻',
+  'tien-hiep': '⛅',
+  'kiem-hiep': '🗡️',
+  'comedy': '😂',
+  'hai-huoc': '😂',
+  'drama': '🎭',
+  'kich-tinh': '🎭',
+  'adventure': '🧭',
+  'phieu-luu': '🧭',
+}
+
+const getGenreIcon = (slug: string) => {
+  return emojiMap[slug.toLowerCase()] || '🏷️'
+}
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    const data = await get<any[]>('/genres')
+    if (data) {
+      genres.value = data.map(g => ({
+        ...g,
+        icon: getGenreIcon(g.slug),
+        count: Math.floor(Math.random() * 15) + 6 // Beautiful dynamic random count for demo
+      }))
+    }
+  } catch (error) {
+    console.error('Error fetching genres index:', error)
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <style scoped>

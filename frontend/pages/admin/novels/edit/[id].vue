@@ -2,10 +2,10 @@
   <div class="admin-create-page">
     <div class="page-header">
       <button class="back-link" @click="router.back()">← Quay lại</button>
-      <h2>Viết Truyện Mới</h2>
+      <h2>Chỉnh sửa Tiểu Thuyết</h2>
     </div>
 
-    <div class="create-grid">
+    <div class="create-grid" v-if="!loading">
       <!-- Left: Form Info -->
       <div class="create-form-panel">
         <div class="form-section">
@@ -26,10 +26,12 @@
               <label>Nhà xuất bản</label>
               <input type="text" v-model="form.publisher" placeholder="Nhà xuất bản..." />
             </div>
+            
             <GenreSelect 
               v-model="form.genres" 
               :required="true"
             />
+            
             <div class="form-group">
               <label>Trạng thái</label>
               <div class="radio-group">
@@ -47,6 +49,7 @@
                 </label>
               </div>
             </div>
+            
             <div class="form-group full">
               <label>Mô tả truyện <span class="required">*</span></label>
               <div class="quill-wrapper">
@@ -85,17 +88,22 @@
 
         <div class="publish-panel">
           <button class="btn-publish" @click="handleSubmit" :disabled="isSubmitting">
-            {{ isSubmitting ? 'Đang xử lý...' : 'Đăng truyện' }}
+            {{ isSubmitting ? 'Đang xử lý...' : 'Lưu Thay Đổi' }}
           </button>
         </div>
       </aside>
+    </div>
+
+    <div v-else class="loading-state">
+      <div class="spinner"></div>
+      <p>Đang tải thông tin truyện...</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onBeforeUnmount, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { QuillEditor } from '@vueup/vue-quill'
 import Quill from 'quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
@@ -115,25 +123,28 @@ Quill.register(LineHeightStyle, true)
 
 definePageMeta({
   layout: 'admin',
-  title: 'Viết Truyện Mới'
+  title: 'Chỉnh sửa Tiểu Thuyết'
 })
 
 const router = useRouter()
-const { post } = useApi()
+const route = useRoute()
+const { get, put } = useApi()
 const authStore = useAuthStore()
+
+const loading = ref(true)
 const isSubmitting = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
-const descTextarea = ref<HTMLTextAreaElement | null>(null)
 
 const form = reactive({
   title: '',
-  genres: [],
+  genres: [] as number[],
   author: '',
   publisher: '',
   status: 'ongoing',
   description: '',
   coverUrl: ''
 })
+
 const quillToolbar = [
   [{ 'font': [false, 'serif', 'monospace', 'arial', 'roboto', 'montserrat', 'inter', 'times-new-roman'] }, { 'size': ['small', false, 'large', 'huge'] }],
   ['bold', 'italic', 'underline', 'strike'],
@@ -158,7 +169,30 @@ const descriptionLength = computed(() => {
 })
 
 onMounted(async () => {
-  // GenreSelect dynamically handles its own API data fetching
+  try {
+    const storyId = route.params.id
+    const all = await get<any[]>('/stories?type=novel')
+    const story = all?.find(s => s.id === Number(storyId)) || null
+    
+    if (story) {
+      form.title = story.title
+      form.author = story.author || ''
+      form.publisher = story.publisher || ''
+      form.status = story.status
+      form.description = story.description || ''
+      form.coverUrl = story.coverUrl || ''
+      form.genres = story.genres ? story.genres.map((g: any) => g.id) : []
+      
+      useHead({ title: `Sửa: ${story.title} - Admin` })
+    } else {
+      alert('Không tìm thấy tiểu thuyết này!')
+      router.push('/admin/novels')
+    }
+  } catch (err) {
+    console.error('Error fetching novel details:', err)
+  } finally {
+    loading.value = false
+  }
 })
 
 const triggerUpload = () => fileInput.value?.click()
@@ -176,13 +210,6 @@ const handleFileUpload = (e: Event) => {
 
 const generateSlug = (text: string) => {
   return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-")
-}
-
-const adjustHeight = () => {
-  if (descTextarea.value) {
-    descTextarea.value.style.height = 'auto'
-    descTextarea.value.style.height = `${descTextarea.value.scrollHeight + 2}px`
-  }
 }
 
 const handleSubmit = async () => {
@@ -207,12 +234,12 @@ const handleSubmit = async () => {
       genres: form.genres.map(id => ({ id }))
     }
     const headers = { Authorization: `Bearer ${authStore.token}` }
-    await post('/admin/stories', payload, { headers })
-    alert('Đã lưu truyện thành công!')
-    router.push('/admin/novels')
+    await put(`/admin/stories/${route.params.id}`, payload, { headers })
+    alert('Đã cập nhật tiểu thuyết thành công!')
+    router.push(`/admin/novels/${route.params.id}`)
   } catch (error) {
     console.error(error)
-    alert('Có lỗi xảy ra khi thêm truyện!')
+    alert('Có lỗi xảy ra khi cập nhật tiểu thuyết!')
   } finally {
     isSubmitting.value = false
   }
@@ -244,8 +271,6 @@ const handleSubmit = async () => {
 .radio-group { display: flex; gap: 16px; align-items: center; height: 44px; }
 .radio-item { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 0.9rem; cursor: pointer; }
 
-
-/* Quill Editor Styling */
 .quill-wrapper {
   background: #fff;
   border: 1px solid rgba(255,255,255,0.1);
@@ -287,7 +312,6 @@ const handleSubmit = async () => {
 :deep(.ql-font-inter) { font-family: 'Inter', sans-serif; }
 :deep(.ql-font-times-new-roman) { font-family: 'Times New Roman', serif; }
 
-/* Custom Line Height Dropdown */
 :deep(.ql-snow .ql-picker.ql-lineHeight) { width: 100px; }
 :deep(.ql-snow .ql-picker.ql-lineHeight .ql-picker-label[data-value]::before),
 :deep(.ql-snow .ql-picker.ql-lineHeight .ql-picker-item[data-value]::before) { content: attr(data-value); }
@@ -307,18 +331,6 @@ const handleSubmit = async () => {
 
 .char-count.error { color: #ef4444; }
 
-/* Editor */
-.editor-wrapper { border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; background: rgba(0,0,0,0.1); }
-.editor-toolbar { display: flex; gap: 4px; padding: 8px; background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1); flex-wrap: wrap; }
-.editor-toolbar button { background: none; border: none; color: #A8A8B3; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
-.editor-toolbar button:hover { background: rgba(255,255,255,0.05); color: #fff; }
-.editor-toolbar button.is-active { background: #9CA764; color: #000; }
-
-.tiptap-editor { padding: 20px; min-height: 400px; color: #fff; }
-.tiptap-editor :deep(.ProseMirror) { outline: none; line-height: 1.6; }
-.tiptap-editor :deep(.ProseMirror p) { margin-bottom: 1em; }
-
-/* Sidebar */
 .cover-upload-box { width: 100%; aspect-ratio: 2/3; border: 2px dashed rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; transition: all 0.2s; }
 .cover-upload-box:hover { border-color: #9CA764; background: rgba(156,167,100,0.05); }
 .upload-placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; color: #5C5C6B; text-align: center; }
@@ -328,8 +340,10 @@ const handleSubmit = async () => {
 .remove-cover { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 50%; background: rgba(239,68,68,0.8); color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
 
 .publish-panel { display: flex; flex-direction: column; gap: 12px; }
-.btn-save { background: #1F2330; color: #A8A8B3; border: 1px solid rgba(255,255,255,0.1); padding: 14px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-.btn-save:hover { background: #2A2F40; color: #fff; }
-.btn-publish { background: #9CA764; color: #000; border: none; padding: 14px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.btn-publish { background: #9CA764; color: #000; border: none; padding: 14px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s; width: 100%; }
 .btn-publish:hover { background: #B8C878; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(156,167,100,0.4); }
+
+.loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px; color: #A8A8B3; gap: 16px; }
+.spinner { width: 40px; height: 40px; border: 3px solid rgba(156,167,100,0.2); border-top-color: #9CA764; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>

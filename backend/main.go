@@ -23,7 +23,7 @@ func main() {
 	db := config.ConnectDB()
 	
 	// Auto Migrate Models
-	db.AutoMigrate(&models.User{}, &models.Genre{}, &models.Story{}, &models.Chapter{}, &models.ChapterServer{}, &models.Media{})
+	db.AutoMigrate(&models.User{}, &models.Genre{}, &models.Category{}, &models.Story{}, &models.Chapter{}, &models.ChapterServer{}, &models.Media{})
 
 	// Connect to Redis
 	redisClient := config.ConnectRedis()

@@ -2,10 +2,10 @@
   <div class="admin-create-page">
     <div class="page-header">
       <button class="back-link" @click="router.back()">← Quay lại</button>
-      <h2>Viết Truyện Mới</h2>
+      <h2>Chỉnh sửa Truyện Tranh</h2>
     </div>
 
-    <div class="create-grid">
+    <div class="create-grid" v-if="!loading">
       <!-- Left: Form Info -->
       <div class="create-form-panel">
         <div class="form-section">
@@ -13,7 +13,7 @@
           <div class="form-grid">
             <div class="form-group full">
               <label>Tên truyện <span class="required">*</span></label>
-              <input type="text" v-model="form.title" maxlength="50" required placeholder="Ví dụ: Đấu Phá Thương Khung (Tối đa 50 ký tự)" />
+              <input type="text" v-model="form.title" maxlength="50" required placeholder="Ví dụ: Solo Leveling (Tối đa 50 ký tự)" />
               <small class="char-count">{{ form.title.length }}/50</small>
             </div>
 
@@ -26,6 +26,7 @@
               <label>Nhà xuất bản</label>
               <input type="text" v-model="form.publisher" placeholder="Nhà xuất bản..." />
             </div>
+
             <GenreSelect 
               v-model="form.genres" 
               :required="true"
@@ -50,12 +51,12 @@
             <div class="form-group full">
               <label>Mô tả truyện <span class="required">*</span></label>
               <div class="quill-wrapper">
-                <QuillEditor
-                  v-model:content="form.description"
+                <QuillEditor 
+                  v-model:content="form.description" 
                   content-type="html"
                   theme="snow"
-                  placeholder="Tóm tắt nội dung... (Tối đa 700 ký tự)"
                   :toolbar="quillToolbar"
+                  placeholder="Tóm tắt nội dung... (Tối đa 700 ký tự)"
                 />
               </div>
               <small class="char-count" :class="{ 'error': descriptionLength > 700 }">
@@ -77,7 +78,7 @@
             </div>
             <div v-else class="upload-placeholder" @click="triggerUpload">
               <span class="icon">📸</span>
-              <span>Nhấp để tải ảnh</span>
+              <span>Nhấp để tải ảnh bìa</span>
               <input type="file" ref="fileInput" hidden @change="handleFileUpload" />
             </div>
           </div>
@@ -85,17 +86,22 @@
 
         <div class="publish-panel">
           <button class="btn-publish" @click="handleSubmit" :disabled="isSubmitting">
-            {{ isSubmitting ? 'Đang xử lý...' : 'Đăng truyện' }}
+            {{ isSubmitting ? 'Đang xử lý...' : 'Lưu Thay Đổi' }}
           </button>
         </div>
       </aside>
+    </div>
+
+    <div v-else class="loading-state">
+      <div class="spinner"></div>
+      <p>Đang tải thông tin truyện...</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onBeforeUnmount, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { QuillEditor } from '@vueup/vue-quill'
 import Quill from 'quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
@@ -115,25 +121,28 @@ Quill.register(LineHeightStyle, true)
 
 definePageMeta({
   layout: 'admin',
-  title: 'Viết Truyện Mới'
+  title: 'Chỉnh sửa Truyện Tranh'
 })
 
 const router = useRouter()
-const { post } = useApi()
+const route = useRoute()
+const { get, put } = useApi()
 const authStore = useAuthStore()
+
+const loading = ref(true)
 const isSubmitting = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
-const descTextarea = ref<HTMLTextAreaElement | null>(null)
 
 const form = reactive({
   title: '',
-  genres: [],
+  genres: [] as number[],
   author: '',
   publisher: '',
   status: 'ongoing',
   description: '',
   coverUrl: ''
 })
+
 const quillToolbar = [
   [{ 'font': [false, 'serif', 'monospace', 'arial', 'roboto', 'montserrat', 'inter', 'times-new-roman'] }, { 'size': ['small', false, 'large', 'huge'] }],
   ['bold', 'italic', 'underline', 'strike'],
@@ -158,7 +167,30 @@ const descriptionLength = computed(() => {
 })
 
 onMounted(async () => {
-  // GenreSelect dynamically handles its own API data fetching
+  try {
+    const storyId = route.params.id
+    const all = await get<any[]>('/stories?type=comic')
+    const story = all?.find(s => s.id === Number(storyId)) || null
+    
+    if (story) {
+      form.title = story.title
+      form.author = story.author || ''
+      form.publisher = story.publisher || ''
+      form.status = story.status
+      form.description = story.description || ''
+      form.coverUrl = story.coverUrl || ''
+      form.genres = story.genres ? story.genres.map((g: any) => g.id) : []
+      
+      useHead({ title: `Sửa: ${story.title} - Admin` })
+    } else {
+      alert('Không tìm thấy truyện tranh này!')
+      router.push('/admin/comics')
+    }
+  } catch (err) {
+    console.error('Error fetching comic details:', err)
+  } finally {
+    loading.value = false
+  }
 })
 
 const triggerUpload = () => fileInput.value?.click()
@@ -178,27 +210,20 @@ const generateSlug = (text: string) => {
   return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-")
 }
 
-const adjustHeight = () => {
-  if (descTextarea.value) {
-    descTextarea.value.style.height = 'auto'
-    descTextarea.value.style.height = `${descTextarea.value.scrollHeight + 2}px`
-  }
-}
-
 const handleSubmit = async () => {
   if (!form.title || !form.description || form.genres.length === 0 || !form.coverUrl) {
     alert('Vui lòng điền đầy đủ các thông tin bắt buộc (Tên truyện, Thể loại, Mô tả, Ảnh bìa)!')
     return
   }
   if (form.title.length > 50) return alert('Tên truyện tối đa 50 ký tự!')
-  if (descriptionLength.value > 700) return alert('Mô tả tối đa 700 ký tự (chữ thô)!')
+  if (descriptionLength.value > 700) return alert('Mô tả truyện tranh tối đa 700 ký tự!')
 
   isSubmitting.value = true
   try {
     const payload = {
       title: form.title,
       slug: generateSlug(form.title),
-      type: 'novel',
+      type: 'comic',
       status: form.status,
       description: form.description,
       author: form.author,
@@ -207,12 +232,12 @@ const handleSubmit = async () => {
       genres: form.genres.map(id => ({ id }))
     }
     const headers = { Authorization: `Bearer ${authStore.token}` }
-    await post('/admin/stories', payload, { headers })
-    alert('Đã lưu truyện thành công!')
-    router.push('/admin/novels')
+    await put(`/admin/stories/${route.params.id}`, payload, { headers })
+    alert('Đã cập nhật truyện tranh thành công!')
+    router.push(`/admin/comics/${route.params.id}`)
   } catch (error) {
     console.error(error)
-    alert('Có lỗi xảy ra khi thêm truyện!')
+    alert('Có lỗi xảy ra khi cập nhật truyện!')
   } finally {
     isSubmitting.value = false
   }
@@ -224,13 +249,10 @@ const handleSubmit = async () => {
 .page-header { display: flex; align-items: center; gap: 16px; }
 .back-link { background: none; border: none; color: #9CA764; cursor: pointer; font-weight: 600; }
 .page-header h2 { margin: 0; color: #fff; font-family: 'Montserrat', sans-serif; }
-
 .create-grid { display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
 @media (max-width: 1024px) { .create-grid { grid-template-columns: 1fr; } }
-
 .form-section { background: #141720; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
 .form-section h3 { font-size: 1rem; color: #F1E8C7; margin: 0 0 20px 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; }
-
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .form-group { display: flex; flex-direction: column; gap: 8px; }
 .form-group.full { grid-column: span 2; }
@@ -240,12 +262,9 @@ const handleSubmit = async () => {
 .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #9CA764; outline: none; }
 .char-count { font-size: 0.75rem; color: #5C5C6B; text-align: right; margin-top: 4px; }
 .help-text { font-size: 0.75rem; color: #9CA764; margin-top: 4px; }
-
 .radio-group { display: flex; gap: 16px; align-items: center; height: 44px; }
 .radio-item { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 0.9rem; cursor: pointer; }
 
-
-/* Quill Editor Styling */
 .quill-wrapper {
   background: #fff;
   border: 1px solid rgba(255,255,255,0.1);
@@ -266,10 +285,7 @@ const handleSubmit = async () => {
   color: #333;
   line-height: 1.6;
 }
-:deep(.ql-editor.ql-blank::before) {
-  color: #999;
-  font-style: normal;
-}
+
 :deep(.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before),
 :deep(.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]::before) { content: 'Arial'; font-family: 'Arial'; }
 :deep(.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="roboto"]::before),
@@ -287,7 +303,6 @@ const handleSubmit = async () => {
 :deep(.ql-font-inter) { font-family: 'Inter', sans-serif; }
 :deep(.ql-font-times-new-roman) { font-family: 'Times New Roman', serif; }
 
-/* Custom Line Height Dropdown */
 :deep(.ql-snow .ql-picker.ql-lineHeight) { width: 100px; }
 :deep(.ql-snow .ql-picker.ql-lineHeight .ql-picker-label[data-value]::before),
 :deep(.ql-snow .ql-picker.ql-lineHeight .ql-picker-item[data-value]::before) { content: attr(data-value); }
@@ -307,18 +322,6 @@ const handleSubmit = async () => {
 
 .char-count.error { color: #ef4444; }
 
-/* Editor */
-.editor-wrapper { border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; background: rgba(0,0,0,0.1); }
-.editor-toolbar { display: flex; gap: 4px; padding: 8px; background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1); flex-wrap: wrap; }
-.editor-toolbar button { background: none; border: none; color: #A8A8B3; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
-.editor-toolbar button:hover { background: rgba(255,255,255,0.05); color: #fff; }
-.editor-toolbar button.is-active { background: #9CA764; color: #000; }
-
-.tiptap-editor { padding: 20px; min-height: 400px; color: #fff; }
-.tiptap-editor :deep(.ProseMirror) { outline: none; line-height: 1.6; }
-.tiptap-editor :deep(.ProseMirror p) { margin-bottom: 1em; }
-
-/* Sidebar */
 .cover-upload-box { width: 100%; aspect-ratio: 2/3; border: 2px dashed rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; transition: all 0.2s; }
 .cover-upload-box:hover { border-color: #9CA764; background: rgba(156,167,100,0.05); }
 .upload-placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; color: #5C5C6B; text-align: center; }
@@ -326,10 +329,11 @@ const handleSubmit = async () => {
 .cover-preview { width: 100%; height: 100%; position: relative; }
 .cover-preview img { width: 100%; height: 100%; object-fit: cover; }
 .remove-cover { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 50%; background: rgba(239,68,68,0.8); color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
-
 .publish-panel { display: flex; flex-direction: column; gap: 12px; }
-.btn-save { background: #1F2330; color: #A8A8B3; border: 1px solid rgba(255,255,255,0.1); padding: 14px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-.btn-save:hover { background: #2A2F40; color: #fff; }
-.btn-publish { background: #9CA764; color: #000; border: none; padding: 14px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.btn-publish { background: #9CA764; color: #000; border: none; padding: 14px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s; width: 100%; }
 .btn-publish:hover { background: #B8C878; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(156,167,100,0.4); }
+
+.loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px; color: #A8A8B3; gap: 16px; }
+.spinner { width: 40px; height: 40px; border: 3px solid rgba(156,167,100,0.2); border-top-color: #9CA764; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>

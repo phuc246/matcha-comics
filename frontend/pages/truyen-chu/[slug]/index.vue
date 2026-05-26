@@ -26,7 +26,7 @@
           <div class="detail-cover-wrap">
             <div class="novel-cover-3d">
               <img :src="novel.coverUrl" :alt="novel.title" class="detail-cover" />
-              <div class="rank-badge" v-if="novel.isHot">🔥 HOT</div>
+              <div class="rank-badge" v-if="novel.isHot">🔥</div>
             </div>
           </div>
           
@@ -50,8 +50,9 @@
 
             <div class="novel-stats">
               <div class="stat"><span class="icon">👁</span> {{ formatViews(novel.views) }} Lượt xem</div>
-              <div class="stat"><span class="icon">📄</span> {{ novel.chapterCount }} Chương</div>
-              <div class="stat"><span class="icon">⭐</span> {{ novel.rating }}/10 Đánh giá</div>
+              <div class="stat"><span class="icon">❤️</span> {{ totalHearts }} Lượt thích</div>
+              <div class="stat"><span class="icon">📄</span> {{ novel.chapterCount || 0 }} Chương</div>
+              <div class="stat"><span class="icon">⭐</span> {{ novel.rating || 0 }}/10 Đánh giá</div>
             </div>
 
             <div class="novel-genres">
@@ -97,24 +98,13 @@
             <button class="tab-btn">Bình luận (124)</button>
           </div>
 
-          <div class="tab-content chapters-section">
-            <div class="chapters-header">
-              <h3>Chương mới nhất</h3>
-            </div>
-            <div class="chapters-list" v-if="novel.chapters && novel.chapters.length > 0">
-              <NuxtLink
-                v-for="chap in [...novel.chapters].reverse()"
-                :key="chap.id"
-                :to="`/truyen-chu/${novel.slug}/chapter-${chap.number}`"
-                class="chapter-item"
-              >
-                <span class="chapter-name">Chương {{ chap.number }}: {{ chap.title || '' }}</span>
-                <span class="chapter-time">{{ timeAgo(chap.createdAt) }}</span>
-              </NuxtLink>
-            </div>
-            <div v-else class="empty-chapters" style="text-align: center; color: var(--text-muted); padding: 20px;">
-              Chưa có chương nào được đăng.
-            </div>
+          <div class="tab-content">
+            <ChapterList 
+              v-if="novel.chapters" 
+              :chapters="novel.chapters" 
+              :story-slug="novel.slug" 
+              type="novel" 
+            />
           </div>
         </div>
       </div>
@@ -136,14 +126,19 @@ const loading = ref(true)
 const novel = ref<any>(null)
 const descExpanded = ref(false)
 
+const { get } = useApi()
+
+const totalHearts = computed(() => {
+  if (!novel.value || !novel.value.chapters) return 0
+  return novel.value.chapters.reduce((sum: number, c: any) => sum + (c.likes || 0), 0)
+})
+
 const formatViews = (v?: number) => {
   if (!v) return '0'
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
   if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`
   return v.toString()
 }
-
-const { get } = useApi()
 
 const timeAgo = (dateStr?: string) => {
   if (!dateStr) return 'Vừa cập nhật'
@@ -167,7 +162,6 @@ onMounted(async () => {
     const data = await get<any>(`/stories/${slug}`)
     if (data) {
       novel.value = data
-      // Calculate chapterCount if not provided
       if (!novel.value.chapterCount && novel.value.chapters) {
         novel.value.chapterCount = novel.value.chapters.length
       }
@@ -191,37 +185,30 @@ useHead(() => ({
   padding-bottom: 60px;
 }
 
-/* Loader */
 .page-loader { height: 60vh; display: flex; align-items: center; justify-content: center; }
 .loader-spinner { width: 40px; height: 40px; border: 3px solid var(--border-card); border-top-color: var(--accent-primary); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Backdrop */
 .detail-backdrop { position: absolute; top: 0; left: 0; right: 0; height: 500px; z-index: 0; overflow: hidden; }
 .backdrop-img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; filter: blur(25px) saturate(1.5) brightness(0.6); transform: scale(1.1); }
 .backdrop-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(13,15,20,0.3) 0%, rgba(13,15,20,0.8) 50%, var(--bg-primary) 100%); }
 
-/* Container */
 .detail-container { position: relative; z-index: 10; padding-top: 30px; }
 
-/* Breadcrumb */
 .breadcrumb { display: flex; gap: 8px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 30px; }
 .breadcrumb a { transition: var(--transition-fast); }
 .breadcrumb a:hover { color: var(--accent-primary); }
 .breadcrumb .current { color: var(--text-primary); font-weight: 500; }
 
-/* Header Info */
 .detail-header { display: flex; gap: 40px; margin-bottom: 50px; background: rgba(20,23,32,0.45); backdrop-filter: blur(16px); padding: 30px; border-radius: var(--radius-lg); border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
 @media (max-width: 768px) { .detail-header { flex-direction: column; padding: 20px; gap: 24px; align-items: center; text-align: center; } }
 
-/* Cover */
 .detail-cover-wrap { flex-shrink: 0; }
 .novel-cover-3d { position: relative; width: 220px; aspect-ratio: 2/3; border-radius: var(--radius-md); box-shadow: 0 15px 35px rgba(0,0,0,0.6), var(--shadow-glow); border: 2px solid var(--border-active); }
 @media (max-width: 768px) { .novel-cover-3d { width: 180px; } }
 .detail-cover { width: 100%; height: 100%; object-fit: cover; border-radius: calc(var(--radius-md) - 2px); }
-.rank-badge { position: absolute; top: -10px; right: -10px; background: linear-gradient(135deg, #FF4B2B, #FF416C); color: #fff; font-size: 0.75rem; font-weight: 800; padding: 4px 10px; border-radius: 20px; box-shadow: 0 4px 10px rgba(255,75,43,0.4); }
+.rank-badge { position: absolute; top: -10px; right: -10px; background: linear-gradient(135deg, #FF4B2B, #FF416C); color: #fff; font-size: 0.8rem; width: 24px; height: 24px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(255,75,43,0.4); }
 
-/* Info */
 .detail-info { flex: 1; display: flex; flex-direction: column; gap: 16px; }
 .novel-title { font-family: 'Montserrat', sans-serif; font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 900; color: var(--text-primary); line-height: 1.1; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
 
@@ -259,7 +246,6 @@ useHead(() => ({
 .btn-bookmark { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: var(--bg-tertiary); border: 1px solid var(--border-card); border-radius: var(--radius-md); color: var(--text-secondary); cursor: pointer; transition: var(--transition-base); }
 .btn-bookmark:hover { color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); }
 
-/* Main Section (Chapters) */
 .detail-main { background: var(--bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--border-card); overflow: hidden; }
 .tabs { display: flex; border-bottom: 1px solid var(--border-card); background: rgba(0,0,0,0.2); }
 .tab-btn { flex: 1; padding: 18px; background: none; border: none; font-size: 1rem; font-weight: 700; color: var(--text-muted); cursor: pointer; transition: var(--transition-base); position: relative; }
@@ -267,24 +253,39 @@ useHead(() => ({
 .tab-btn.active { color: var(--accent-gold); }
 .tab-btn.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--accent-gold); box-shadow: 0 0 10px var(--accent-primary); }
 
-.chapters-section { padding: 30px; }
-.chapters-header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-.chapters-header h3 { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
-
-.chapters-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 8px; }
-.chapters-list::-webkit-scrollbar { width: 6px; }
-.chapters-list::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 4px; }
-.chapters-list::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 4px; }
-.chapters-list::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
-.chapter-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); transition: var(--transition-fast); }
-.chapter-item:hover { background: rgba(156,167,100,0.08); border-color: var(--accent-primary); transform: translateX(4px); }
-.chapter-name { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); }
-.chapter-item:hover .chapter-name { color: var(--accent-primary); }
-.chapter-time { font-size: 0.75rem; color: var(--text-muted); }
-
-/* Empty state */
 .empty-state { text-align: center; padding: 100px 20px; }
 .empty-state h2 { font-size: 1.5rem; color: var(--text-secondary); margin-bottom: 20px; }
 .btn-home { display: inline-block; padding: 10px 24px; background: var(--bg-tertiary); border: 1px solid var(--border-card); border-radius: 100px; color: var(--text-primary); transition: var(--transition-base); }
 .btn-home:hover { background: var(--accent-primary); color: #000; }
+
+@media (max-width: 500px) {
+  .detail-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+  .btn-read-first, .btn-read-latest {
+    flex: 1;
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+  }
+  .btn-bookmark {
+    width: 100%;
+    height: 44px;
+  }
+  .novel-stats {
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+  }
+  .novel-meta {
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+}
 </style>

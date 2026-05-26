@@ -162,3 +162,41 @@ func (h *Handler) DeleteChapter(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Chapter deleted successfully"})
 }
 
+// LikeChapter increments the chapter's likes (Public API)
+func (h *Handler) LikeChapter(c *gin.Context) {
+	id := c.Param("id")
+	var chapter models.Chapter
+	if err := h.DB.First(&chapter, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Chapter not found"})
+		return
+	}
+
+	chapter.Likes++
+	if err := h.DB.Save(&chapter).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"id": chapter.ID, "likes": chapter.Likes})
+}
+
+// UnlikeChapter decrements the chapter's likes (Public API)
+func (h *Handler) UnlikeChapter(c *gin.Context) {
+	id := c.Param("id")
+	var chapter models.Chapter
+	if err := h.DB.First(&chapter, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Chapter not found"})
+		return
+	}
+
+	if chapter.Likes > 0 {
+		chapter.Likes--
+	}
+	if err := h.DB.Save(&chapter).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"id": chapter.ID, "likes": chapter.Likes})
+}
+

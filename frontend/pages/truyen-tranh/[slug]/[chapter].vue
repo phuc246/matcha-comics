@@ -1,5 +1,6 @@
 <template>
   <div class="comic-reader" :class="{ 'menu-hidden': !showMenu }">
+    <ContentProtection />
     <!-- Loader -->
     <div v-if="loading" class="reader-loader">
       <div class="spinner"></div>
@@ -51,13 +52,15 @@
           <!-- Spacer top -->
           <div class="reader-spacer"></div>
           
-          <div v-for="(img, index) in chapterImages" :key="index" class="page-item">
+          <div v-for="(img, index) in chapterImages" :key="index" class="page-item page-item-protected">
             <img 
               :src="img" 
               :alt="`Trang ${index + 1}`" 
               class="page-img"
               loading="lazy"
             />
+            <!-- Protection Shield -->
+            <div class="protection-shield"></div>
           </div>
           
           <!-- Spacer bottom -->
@@ -75,7 +78,10 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
               <span>Chương Trước</span>
             </NuxtLink>
-            <button v-else class="nav-btn disabled">Chương Trước</button>
+            <button v-else class="nav-btn disabled">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+              <span>Chương Trước</span>
+            </button>
 
             <div class="chapter-picker">
               {{ currentChapterNum }} / {{ comic.chapters?.length || '?' }}
@@ -91,6 +97,7 @@
             </NuxtLink>
             <NuxtLink v-else :to="`/truyen-tranh/${comic.slug}`" class="nav-btn next active">
               <span>Hết Truyện</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </NuxtLink>
           </div>
         </div>
@@ -304,4 +311,18 @@ watch(() => route.params.chapter, () => {
 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+/* Image Protection Overlay */
+.page-item-protected {
+  position: relative;
+  width: 100%;
+}
+.protection-shield {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  z-index: 10;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
 </style>

@@ -52,39 +52,91 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { mockComics, mockNovels, mockGenres } from '~/data/mock'
+import { mockComics, mockNovels } from '~/data/mock'
 
 const route = useRoute()
 const loading = ref(true)
 const comics = ref<any[]>([])
+const genresList = ref<any[]>([])
+const { get } = useApi()
 
 const genreSlug = computed(() => route.params.slug as string)
-const genreInfo = computed(() => mockGenres.find(g => g.slug === genreSlug.value))
+
+const emojiMap: Record<string, string> = {
+  'action': '⚔️',
+  'hanh-dong': '⚔️',
+  'romance': '💕',
+  'lang-man': '💕',
+  'ngon-tinh': '💞',
+  'fantasy': '🧙',
+  'ky-ao': '🧙',
+  'horror': '👻',
+  'kinh-di': '👻',
+  'tien-hiep': '⛅',
+  'kiem-hiep': '🗡️',
+  'comedy': '😂',
+  'hai-huoc': '😂',
+  'drama': '🎭',
+  'kich-tinh': '🎭',
+  'adventure': '🧭',
+  'phieu-luu': '🧭',
+}
+
+const getGenreIcon = (slug: string) => {
+  return emojiMap[slug.toLowerCase()] || '🏷️'
+}
+
+const genreInfo = computed(() => genresList.value.find(g => g.slug.toLowerCase() === genreSlug.value.toLowerCase()))
 const genreName = computed(() => genreInfo.value?.name || genreSlug.value)
-const genreIcon = computed(() => genreInfo.value?.icon || '📚')
+const genreIcon = computed(() => getGenreIcon(genreSlug.value))
+
+const fetchGenres = async () => {
+  try {
+    const data = await get<any[]>('/genres')
+    if (data) genresList.value = data
+  } catch (err) {
+    console.error('Error fetching genres list in slug:', err)
+  }
+}
 
 const fetchData = async () => {
   loading.value = true
-  await new Promise(r => setTimeout(r, 500))
-  
-  // Combine comics and novels, then filter by genre
-  const all = [...mockComics, ...mockNovels]
-  comics.value = all.filter(c => {
-    return c.genres?.map((g: string) => g.toLowerCase().replace(/ /g, '-')).includes(genreSlug.value.toLowerCase().replace(/ /g, '-'))
-  })
-  
-  // If not found by genre exact match, just return some random for demo
-  if (comics.value.length === 0) {
-    comics.value = all.slice(0, 8)
+  try {
+    // 1. Fetch real stories from database
+    const allStories = await get<any[]>('/stories')
+    if (allStories && allStories.length > 0) {
+      comics.value = allStories.filter(c => {
+        return c.genres?.some((g: any) => g.slug.toLowerCase() === genreSlug.value.toLowerCase())
+      })
+    }
+    
+    // 2. If no real stories in DB or none match, fallback to mock data to keep the screen loaded with content
+    if (comics.value.length === 0) {
+      const allMock = [...mockComics, ...mockNovels]
+      comics.value = allMock.filter(c => {
+        return c.genres?.map((g: string) => g.toLowerCase().replace(/ /g, '-')).includes(genreSlug.value.toLowerCase().replace(/ /g, '-'))
+      })
+      if (comics.value.length === 0) {
+        comics.value = allMock.slice(0, 8)
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching stories for genre:', error)
+    // Fallback on error
+    const allMock = [...mockComics, ...mockNovels]
+    comics.value = allMock.slice(0, 8)
+  } finally {
+    loading.value = false
   }
-  
-  loading.value = false
 }
 
-onMounted(() => fetchData())
+onMounted(async () => {
+  await fetchGenres()
+  await fetchData()
+})
 
-watch(() => route.params.slug, () => {
-  fetchData()
+watch(() => route.params.slug, async () => {
+  await fetchData()
 })
 
 useHead(() => ({

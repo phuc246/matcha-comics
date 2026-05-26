@@ -1,5 +1,6 @@
 <template>
   <div class="novel-reader" :class="`theme-${readerSettings.theme}`">
+    <ContentProtection />
     <!-- Floating Header -->
     <header v-if="novel" class="reader-floating-header" :class="{ 'header-hidden': !showHeader }">
       <div class="header-left">
@@ -568,4 +569,45 @@ useHead(() => ({
 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+@media (max-width: 600px) {
+  .reader-container {
+    padding: 68px 12px 24px !important;
+  }
+  .reader-header-inline {
+    margin-bottom: 24px;
+  }
+  .reader-header-inline h1 {
+    font-size: 1.25em;
+  }
+  .reader-header-inline h2 {
+    font-size: 0.95em;
+  }
+  .reader-settings-bar {
+    padding: 8px 12px;
+    margin-bottom: 24px;
+    font-size: 0.85rem;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+  .setting-group {
+    gap: 8px;
+  }
+  .setting-btn {
+    padding: 2px 8px;
+  }
+  .chapter-content {
+    line-height: 1.6;
+    margin-bottom: 40px;
+  }
+  .chapter-navigation {
+    padding: 20px 0 60px;
+    gap: 10px;
+  }
+  .nav-btn {
+    padding: 10px 16px;
+    font-size: 0.85rem;
+  }
+}
 </style>

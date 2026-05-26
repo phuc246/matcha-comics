@@ -30,6 +30,10 @@
           <span class="nav-icon">🏷️</span>
           <span v-if="!sidebarCollapsed" class="nav-label">Thể loại</span>
         </NuxtLink>
+        <NuxtLink to="/admin/categories" class="nav-item" active-class="active">
+          <span class="nav-icon">🗂️</span>
+          <span v-if="!sidebarCollapsed" class="nav-label">Danh mục Menu</span>
+        </NuxtLink>
         <NuxtLink to="/admin/users" class="nav-item" active-class="active">
           <span class="nav-icon">👥</span>
           <span v-if="!sidebarCollapsed" class="nav-label">Người dùng</span>

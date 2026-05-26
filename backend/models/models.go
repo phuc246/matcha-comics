@@ -46,6 +46,7 @@ type Chapter struct {
 	Servers   []ChapterServer `json:"servers"`
 	CreatedAt time.Time       `json:"createdAt"`
 	UpdatedAt time.Time       `json:"updatedAt"`
+	Likes     int             `gorm:"default:0" json:"likes"`
 	DeletedAt gorm.DeletedAt  `gorm:"index" json:"-"`
 }
 
@@ -75,4 +76,18 @@ type Genre struct {
 	Name       string `gorm:"unique;not null" json:"name"`
 	Slug       string `gorm:"unique;not null" json:"slug"`
 	BadgeColor string `json:"badgeColor"` // Mã màu cho badge, VD: #ff0000
+}
+
+type Category struct {
+	ID        uint       `gorm:"primaryKey" json:"id"`
+	Name      string     `gorm:"not null" json:"name"`
+	Slug      string     `gorm:"unique;not null" json:"slug"`
+	Path      string     `json:"path"`     // Link URL, VD: /truyen-tranh
+	Icon      string     `json:"icon"`     // Icon/Emoji, VD: 📚
+	ParentID  *uint      `json:"parentId"` // ID danh mục cha
+	Parent    *Category  `gorm:"foreignKey:ParentID" json:"-"`
+	Children  []Category `gorm:"foreignKey:ParentID" json:"children"`
+	Order     int        `gorm:"default:0" json:"order"`
+	CreatedAt time.Time  `json:"createdAt"`
+	UpdatedAt time.Time  `json:"updatedAt"`
 }

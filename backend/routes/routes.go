@@ -22,9 +22,14 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, rdb *redis.Client) {
 		api.GET("/stories", h.GetStories)
 		api.GET("/stories/:slug", h.GetStoryDetail)
 		api.GET("/stories/:slug/chapters/:chapter", h.GetChapter)
+		api.POST("/chapters/:id/like", h.LikeChapter)
+		api.POST("/chapters/:id/unlike", h.UnlikeChapter)
 
 		// Public Genre Routes
 		api.GET("/genres", h.GetGenres)
+
+		// Public Category Routes
+		api.GET("/categories", h.GetCategories)
 		
 		api.POST("/auth/login", h.Login)
 		
@@ -48,6 +53,11 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB, rdb *redis.Client) {
 			admin.POST("/genres", h.CreateGenre)
 			admin.PUT("/genres/:id", h.UpdateGenre)
 			admin.DELETE("/genres/:id", h.DeleteGenre)
+
+			// Categories (Danh mục)
+			admin.POST("/categories", h.CreateCategory)
+			admin.PUT("/categories/:id", h.UpdateCategory)
+			admin.DELETE("/categories/:id", h.DeleteCategory)
 
 			// Image Upload & Media Library
 			admin.POST("/upload-images", h.UploadImages)

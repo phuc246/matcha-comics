@@ -12,7 +12,7 @@
         />
         <div class="comic-card__overlay">
           <div class="comic-card__badges">
-            <span v-if="comic.isHot" class="badge badge-hot">🔥 HOT</span>
+            <span v-if="comic.isHot" class="badge badge-hot">🔥</span>
             <span v-if="comic.isNew" class="badge badge-new">MỚI</span>
             <span v-if="comic.status === 'completed'" class="badge badge-completed">FULL</span>
           </div>

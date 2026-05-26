@@ -26,7 +26,7 @@
           <div class="detail-cover-wrap">
             <div class="comic-cover-3d">
               <img :src="comic.coverUrl" :alt="comic.title" class="detail-cover" />
-              <div class="rank-badge" v-if="comic.isHot">🔥 HOT</div>
+              <div class="rank-badge" v-if="comic.isHot">🔥</div>
             </div>
           </div>
           
@@ -50,6 +50,7 @@
 
             <div class="comic-stats">
               <div class="stat"><span class="icon">👁</span> {{ formatViews(comic.views) }} Lượt xem</div>
+              <div class="stat"><span class="icon">❤️</span> {{ totalHearts }} Lượt thích</div>
               <div class="stat"><span class="icon">📄</span> {{ comic.chapters?.length || 0 }} Chương</div>
               <div class="stat"><span class="icon">⭐</span> {{ comic.rating || 0 }}/10 Đánh giá</div>
             </div>
@@ -97,24 +98,13 @@
             <button class="tab-btn">Bình luận</button>
           </div>
 
-          <div class="tab-content chapters-section">
-            <div class="chapters-header">
-              <h3>Danh sách chương</h3>
-            </div>
-            <div class="chapters-grid" v-if="comic.chapters && comic.chapters.length > 0">
-              <NuxtLink
-                v-for="chap in [...comic.chapters].reverse()"
-                :key="chap.id"
-                :to="`/truyen-tranh/${comic.slug}/chapter-${chap.number}`"
-                class="chapter-item"
-              >
-                <span class="chapter-name">Chương {{ chap.number }}: {{ chap.title || '' }}</span>
-                <span class="chapter-time">{{ timeAgo(chap.createdAt) }}</span>
-              </NuxtLink>
-            </div>
-            <div v-else class="empty-chapters">
-              Chưa có chương nào được đăng.
-            </div>
+          <div class="tab-content">
+            <ChapterList 
+              v-if="comic.chapters" 
+              :chapters="comic.chapters" 
+              :story-slug="comic.slug" 
+              type="comic" 
+            />
           </div>
         </div>
       </div>
@@ -136,14 +126,19 @@ const loading = ref(true)
 const comic = ref<any>(null)
 const descExpanded = ref(false)
 
+const { get } = useApi()
+
+const totalHearts = computed(() => {
+  if (!comic.value || !comic.value.chapters) return 0
+  return comic.value.chapters.reduce((sum: number, c: any) => sum + (c.likes || 0), 0)
+})
+
 const formatViews = (v?: number) => {
   if (!v) return '0'
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
   if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`
   return v.toString()
 }
-
-const { get } = useApi()
 
 const timeAgo = (dateStr?: string) => {
   if (!dateStr) return 'Vừa cập nhật'
@@ -167,10 +162,6 @@ onMounted(async () => {
     const data = await get<any>(`/stories/${slug}`)
     if (data) {
       comic.value = data
-      // Calculate chapterCount if not provided
-      if (!comic.value.chapterCount && comic.value.chapters) {
-        comic.value.chapterCount = comic.value.chapters.length
-      }
     }
   } catch (err) {
     console.error('Error fetching comic detail:', err)
@@ -219,7 +210,7 @@ useHead(() => ({
 .comic-cover-3d { position: relative; width: 220px; aspect-ratio: 2/3; border-radius: var(--radius-md); box-shadow: 0 15px 35px rgba(0,0,0,0.6), var(--shadow-glow); border: 2px solid var(--border-active); }
 @media (max-width: 768px) { .comic-cover-3d { width: 180px; } }
 .detail-cover { width: 100%; height: 100%; object-fit: cover; border-radius: calc(var(--radius-md) - 2px); }
-.rank-badge { position: absolute; top: -10px; right: -10px; background: linear-gradient(135deg, #FF4B2B, #FF416C); color: #fff; font-size: 0.75rem; font-weight: 800; padding: 4px 10px; border-radius: 20px; box-shadow: 0 4px 10px rgba(255,75,43,0.4); }
+.rank-badge { position: absolute; top: -10px; right: -10px; background: linear-gradient(135deg, #FF4B2B, #FF416C); color: #fff; font-size: 0.8rem; width: 24px; height: 24px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(255,75,43,0.4); }
 
 /* Info */
 .detail-info { flex: 1; display: flex; flex-direction: column; gap: 16px; }
@@ -267,24 +258,40 @@ useHead(() => ({
 .tab-btn.active { color: var(--accent-gold); }
 .tab-btn.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--accent-gold); box-shadow: 0 0 10px var(--accent-primary); }
 
-.chapters-section { padding: 30px; }
-.chapters-header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-.chapters-header h3 { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
-
-.chapters-grid { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 8px; }
-.chapters-grid::-webkit-scrollbar { width: 6px; }
-.chapters-grid::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 4px; }
-.chapters-grid::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 4px; }
-.chapters-grid::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
-.chapter-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); transition: var(--transition-fast); }
-.chapter-item:hover { background: rgba(156,167,100,0.08); border-color: var(--accent-primary); transform: translateX(4px); }
-.chapter-name { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); }
-.chapter-item:hover .chapter-name { color: var(--accent-primary); }
-.chapter-time { font-size: 0.75rem; color: var(--text-muted); }
-
 /* Empty state */
 .empty-state { text-align: center; padding: 100px 20px; }
 .empty-state h2 { font-size: 1.5rem; color: var(--text-secondary); margin-bottom: 20px; }
 .btn-home { display: inline-block; padding: 10px 24px; background: var(--bg-tertiary); border: 1px solid var(--border-card); border-radius: 100px; color: var(--text-primary); transition: var(--transition-base); }
 .btn-home:hover { background: var(--accent-primary); color: #000; }
+
+@media (max-width: 500px) {
+  .detail-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+  .btn-read-first, .btn-read-latest {
+    flex: 1;
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+  }
+  .btn-bookmark {
+    width: 100%;
+    height: 44px;
+  }
+  .comic-stats {
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+  }
+  .comic-meta {
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+}
 </style>

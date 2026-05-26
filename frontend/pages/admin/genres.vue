@@ -58,10 +58,10 @@
           <div class="form-group">
             <label>Tên Thể loại</label>
             <input type="text" v-model="editingGenre.name" @input="generateSlug" required placeholder="VD: Ngôn Tình, Hành Động..." />
+          </div>          <div class="form-group">
+            <label>Slug (Đường dẫn)</label>
+            <input type="text" v-model="editingGenre.slug" required placeholder="VD: ngon-tinh, hanh-dong..." />
           </div>
-
-
-
           <div class="form-group">
             <label>Màu sắc Badge</label>
             <div class="color-picker-wrap">

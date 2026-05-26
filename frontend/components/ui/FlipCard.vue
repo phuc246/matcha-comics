@@ -6,7 +6,7 @@
         <img :src="comic.coverUrl || '/images/no-cover.jpg'" :alt="comic.title" class="cover-image" loading="lazy" />
         <div class="front-overlay">
           <div class="badges">
-            <span v-if="comic.isHot" class="badge badge-hot">HOT</span>
+            <span v-if="comic.isHot" class="badge badge-hot">🔥</span>
             <span v-if="comic.status === 'completed'" class="badge badge-completed">FULL</span>
           </div>
           <div class="front-info">
@@ -122,10 +122,26 @@ const formatViews = (v?: number) => {
   padding: 12px;
 }
 
-.badges { display: flex; gap: 4px; flex-wrap: wrap; }
+.badges { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
 .badge { font-size: 0.65rem; font-weight: 800; padding: 3px 6px; border-radius: 4px; color: #fff; }
-.badge-hot { background: linear-gradient(135deg, #ff4d4d, #cc0000); }
-.badge-completed { background: linear-gradient(135deg, #4caf50, #2e7d32); }
+.badge-hot {
+  background: linear-gradient(135deg, #ff4d4d, #cc0000);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  box-shadow: 0 0 10px rgba(255, 77, 77, 0.4);
+}
+.badge-completed {
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(4px);
+}
 
 .front-info { text-align: left; }
 .comic-title { font-size: 0.9rem; font-weight: 700; color: #fff; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
